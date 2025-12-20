@@ -3,10 +3,14 @@ package main
 import (
 	"agent.article.fp/agent"
 	"agent.article.fp/api"
+	"agent.article.fp/client"
+	"agent.article.fp/config"
+	"agent.article.fp/util"
 	"context"
 	"fmt"
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/schema"
+	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"io"
@@ -16,6 +20,20 @@ import (
 
 func main() {
 	ctx := context.Background()
+
+	util.InitSystemPrompt()
+
+	var cfg config.Config
+	_ = cleanenv.ReadConfig("./config/config.yaml", &cfg)
+
+	client.InitRedis(cfg.Redis)
+	client.InitQdrant(cfg.Qdrant)
+	//client.InitTemporal(cfg.Temporal, &client.Temporal)
+	//client.InitTemporal(cfg.SyncTemporal, &client.SyncTemporal)
+	//client.InitMcpClient(cfg.McpServer)
+	//client.InitTools()
+	client.InitMysql(cfg.Mysql)
+	defer client.Close()
 
 	// 先初始化所需的 chatModel
 	// 先初始化所需的 chatModel
@@ -34,7 +52,7 @@ func main() {
 	e := echo.New()
 	e.Use(middleware.CORS())
 
-	e.POST("/v2/chat", sse(einoHandler.HandleQuery))
+	e.POST("/v2/chat", einoHandler.HandleQuery)
 
 	if err := e.Start(":8086"); err != nil {
 		log.Fatalln(err)
