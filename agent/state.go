@@ -11,4 +11,6 @@ type ChatState struct {
 	History []*schema.Message // 由 Loader 填充
 	// 输出字段
 	Response *schema.Message // 由 LLM 填充
+	// 新增：存放检索到的文档
+	Documents []*schema.Document
 }

@@ -1,15 +1,17 @@
 package agent
 
 import (
+	"agent.article.fp/client"
 	"agent.article.fp/dao"
-	"agent.article.fp/util"
 	"context"
 	"fmt"
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/components/prompt"
+	"github.com/cloudwego/eino/components/retriever"
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/schema"
 	oa "github.com/sashabaranov/go-openai"
+	"strings"
 )
 
 // EinoChatAgent 封装编译好的 Runnable，对外提供服务
@@ -27,13 +29,6 @@ func loadHistoryNode(ctx context.Context, state *ChatState) (*ChatState, error) 
 	msgs, err := dao.QueryMessagesBySessionId(ctx, state.SessionId)
 	if err != nil {
 		return nil, fmt.Errorf("load history failed: %w", err)
-	}
-
-	if len(msgs) == 0 {
-		msgs = append(msgs, oa.ChatCompletionMessage{
-			Role:    oa.ChatMessageRoleSystem,
-			Content: util.SystemPrompt,
-		})
 	}
 
 	// 转换格式并赋值给 State
@@ -78,18 +73,20 @@ func saveHistoryNode(ctx context.Context, state *ChatState) (*ChatState, error) 
 	return state, nil
 }
 
+func retrieverNode(ctx context.Context, r retriever.Retriever, state *ChatState) (*ChatState, error) {
+	documents, err := r.Retrieve(ctx, state.Query)
+	if err != nil {
+		return nil, err
+	}
+
+	state.Documents = documents
+	return state, nil
+}
+
 func NewEinoChatAgent(ctx context.Context, config openai.ChatModelConfig) (*EinoChatAgent, error) {
 	// 1. 创建 Graph 容器
 	// 泛型明确指定了输入输出都是 *ChatState
 	graph := compose.NewGraph[*ChatState, *ChatState]()
-
-	// 2. 添加节点 (AddNode)
-	// 使用 LambdaNode 将我们的函数包装成 Graph 节点
-
-	// Node: Loader
-	if err := graph.AddLambdaNode("loader", compose.InvokableLambda(loadHistoryNode)); err != nil {
-		return nil, err
-	}
 
 	// Node: LLM (这里我们将 build 逻辑其实应该提出来，避免每次 Invoke 都 NewModel)
 	// 为了性能，我们先在外面初始化好 Model 和 Template
@@ -105,12 +102,19 @@ func NewEinoChatAgent(ctx context.Context, config openai.ChatModelConfig) (*Eino
 	// 这里我们做一个简单的 Chat Template，支持 System Prompt 和 User Input
 	// Placeholder 语法：{variable_name}
 	tmpl := prompt.FromMessages(schema.FString,
+		schema.SystemMessage("你是一个金融助手。参考以下上下文回答问题：\n\n{context}"), // 👈 新增 context 槽位
 		schema.MessagesPlaceholder("history", false),
 		schema.UserMessage("{query}"))
 
 	lLMRunnerNode := func(ctx context.Context, input *ChatState) (*ChatState, error) {
+		var sb strings.Builder
+		for _, doc := range input.Documents {
+			sb.WriteString(doc.Content + "\n---\n")
+		}
+
 		// 2. 准备组件需要的输入 (Map)
 		inputMap := map[string]any{
+			"context": sb.String(),
 			"history": input.History,
 			"query":   input.Query,
 		}
@@ -132,6 +136,31 @@ func NewEinoChatAgent(ctx context.Context, config openai.ChatModelConfig) (*Eino
 		return input, nil
 	}
 
+	embedder, err := NewEinoEmbedder(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	retrv, err := NewEinoRetriever(ctx, client.Qdrant, embedder)
+	if err != nil {
+		return nil, err
+	}
+
+	retrieverHandle := func(ctx context.Context, state *ChatState) (*ChatState, error) {
+		return retrieverNode(ctx, retrv, state)
+	}
+
+	// 2. 添加节点 (AddNode)
+	// 使用 LambdaNode 将我们的函数包装成 Graph 节点
+	// Node: Loader
+	if err := graph.AddLambdaNode("loader", compose.InvokableLambda(loadHistoryNode)); err != nil {
+		return nil, err
+	}
+
+	if err = graph.AddLambdaNode("retriever", compose.InvokableLambda(retrieverHandle)); err != nil {
+		return nil, err
+	}
+
 	if err = graph.AddLambdaNode("llm_runner", compose.InvokableLambda(lLMRunnerNode)); err != nil {
 		return nil, err
 	}
@@ -143,7 +172,8 @@ func NewEinoChatAgent(ctx context.Context, config openai.ChatModelConfig) (*Eino
 	// 3. 定义边 (AddEdge) - 决定执行顺序
 	// START -> loader -> llm_runner -> saver -> END
 	_ = graph.AddEdge(compose.START, "loader")
-	_ = graph.AddEdge("loader", "llm_runner")
+	_ = graph.AddEdge("loader", "retriever")
+	_ = graph.AddEdge("retriever", "llm_runner")
 	_ = graph.AddEdge("llm_runner", "saver")
 	_ = graph.AddEdge("saver", compose.END)
 
