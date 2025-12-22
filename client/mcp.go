@@ -2,16 +2,20 @@ package client
 
 import (
 	"context"
+	"fmt"
+	einoMcp "github.com/cloudwego/eino-ext/components/tool/mcp"
+	"github.com/cloudwego/eino/components/tool"
+	"github.com/cloudwego/eino/schema"
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/sashabaranov/go-openai"
 	"log"
 	"time"
 )
 
 var (
 	McpClient *client.Client
-	Tools     []openai.Tool
+	ToolsInfo []*schema.ToolInfo
+	EinoTools []tool.BaseTool
 )
 
 func InitMcpClient(server string) {
@@ -57,19 +61,19 @@ func createStreamableHTTPClient(server string) {
 }
 
 func InitTools() {
-	resp, err := McpClient.ListTools(context.Background(), mcp.ListToolsRequest{})
+	ctx := context.Background()
+	tools, err := einoMcp.GetTools(ctx, &einoMcp.Config{Cli: McpClient})
 	if err != nil {
-		panic(err)
+		log.Fatalln(fmt.Sprintf("get tools failed, err ", err.Error()))
 	}
 
-	for _, t := range resp.Tools {
-		Tools = append(Tools, openai.Tool{
-			Type: "function",
-			Function: &openai.FunctionDefinition{
-				Name:        t.Name,
-				Description: t.Description,
-				Parameters:  t.InputSchema, // MCP 的 Schema 和 OpenAI 是完全兼容的！
-			},
-		})
+	for _, t := range tools {
+		info, err := t.Info(ctx)
+		if err != nil {
+			log.Println(fmt.Sprintf("get tool info failed, err %s", err.Error()))
+			continue
+		}
+		ToolsInfo = append(ToolsInfo, info)
+		EinoTools = append(EinoTools, t)
 	}
 }

@@ -30,8 +30,8 @@ func main() {
 	client.InitQdrant(cfg.Qdrant)
 	//client.InitTemporal(cfg.Temporal, &client.Temporal)
 	//client.InitTemporal(cfg.SyncTemporal, &client.SyncTemporal)
-	//client.InitMcpClient(cfg.McpServer)
-	//client.InitTools()
+	client.InitMcpClient(cfg.McpServer)
+	client.InitTools()
 	client.InitMysql(cfg.Mysql)
 	defer client.Close()
 
