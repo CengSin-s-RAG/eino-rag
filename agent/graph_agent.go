@@ -33,6 +33,10 @@ func loadHistoryNode(ctx context.Context, state *ChatState) (*ChatState, error) 
 
 	// 转换格式并赋值给 State
 	state.History = ToEinoMessages(msgs)
+
+	// 2. 将当前 Query 作为一条新消息，追加到 History 末尾
+	// 这样顺序就锁定为：[旧历史..., User(当前提问)]
+	state.History = append(state.History, schema.UserMessage(state.Query))
 	return state, nil
 }
 
@@ -127,14 +131,12 @@ func NewEinoChatAgent(ctx context.Context, config openai.ChatModelConfig) (*Eino
 	// Placeholder 语法：{variable_name}
 	tmpl := prompt.FromMessages(schema.FString,
 		schema.SystemMessage("你是一个专业、高效、多功能的问题解决引擎。你的主要职责是利用你被赋予的外部工具和可参考的上下文来准确、简洁地回答用户的问题并完成指令。"), // 👈 新增 context 槽位
-		schema.MessagesPlaceholder("history", false),
-		schema.UserMessage("{query}"))
+		schema.MessagesPlaceholder("messages", false)) // 修复多轮对话的bug
 
 	lLMRunnerNode := func(ctx context.Context, input *ChatState) (*ChatState, error) {
 		// 2. 准备组件需要的输入 (Map)
 		inputMap := map[string]any{
-			"history": input.History,
-			"query":   input.Query,
+			"messages": input.History,
 		}
 
 		// 3. 执行 Template -> Messages
@@ -218,7 +220,7 @@ func NewEinoChatAgent(ctx context.Context, config openai.ChatModelConfig) (*Eino
 	_ = graph.AddEdge("tools", "llm_runner")
 	// 分支：有 ToolCalls 吗？
 	_ = graph.AddBranch("llm_runner", compose.NewGraphBranch(func(ctx context.Context, state *ChatState) (string, error) {
-		if state.Response != nil && len(state.Response.ToolCalls) > 0 {
+		if len(state.Response.ToolCalls) > 0 {
 			return "tools", nil // -> 去执行工具
 		}
 		return "saver", nil // -> 结束
@@ -226,7 +228,7 @@ func NewEinoChatAgent(ctx context.Context, config openai.ChatModelConfig) (*Eino
 	//_ = graph.AddEdge("llm_runner", "saver")
 	_ = graph.AddEdge("saver", compose.END)
 
-	runner, err := graph.Compile(ctx)
+	runner, err := graph.Compile(ctx, compose.WithMaxRunSteps(20))
 	if err != nil {
 		return nil, err
 	}

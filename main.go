@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/cloudwego/eino-ext/components/model/openai"
+	"github.com/cloudwego/eino-ext/devops"
 	"github.com/cloudwego/eino/schema"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/labstack/echo/v4"
@@ -20,6 +21,9 @@ import (
 
 func main() {
 	ctx := context.Background()
+	if err := devops.Init(ctx); err != nil {
+		log.Fatalln(fmt.Errorf("init devops error: %v", err))
+	}
 
 	util.InitSystemPrompt()
 
