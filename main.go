@@ -37,12 +37,12 @@ func main() {
 
 	// 先初始化所需的 chatModel
 	// 先初始化所需的 chatModel
-	config := openai.ChatModelConfig{
+	conf := openai.ChatModelConfig{
 		APIKey:  os.Getenv("OPENROUTER_API_KEY"),
 		BaseURL: os.Getenv("OPENROUTER_API_BASE_URL"),
 		Model:   os.Getenv("OPENROUTER_MODEL"),
 	}
-	chatAgent, err := agent.NewEinoChatAgent(ctx, config)
+	chatAgent, err := agent.NewEinoChatAgent(ctx, conf)
 	if err != nil {
 		log.Fatalln(fmt.Errorf("NewEinoChatAgent: %v", err))
 	}

@@ -6,7 +6,6 @@ import (
 	"github.com/cloudwego/eino/components/retriever"
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/components/tool/utils"
-	"github.com/cloudwego/eino/schema"
 )
 
 func NewRetrieverTool(r retriever.Retriever, name, desc string) tool.BaseTool {
@@ -30,6 +29,6 @@ func NewRetrieverTool(r retriever.Retriever, name, desc string) tool.BaseTool {
 		return result, nil
 	}
 
-	newTool := utils.NewTool(&schema.ToolInfo{Name: name, Desc: desc}, runFunc)
+	newTool, _ := utils.InferTool(name, desc, runFunc)
 	return newTool
 }
