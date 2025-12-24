@@ -8,8 +8,10 @@ import (
 	"agent.article.fp/util"
 	"context"
 	"fmt"
+	"github.com/cloudwego/eino-ext/callbacks/apmplus"
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino-ext/devops"
+	"github.com/cloudwego/eino/callbacks"
 	"github.com/cloudwego/eino/schema"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/labstack/echo/v4"
@@ -24,6 +26,26 @@ func main() {
 	if err := devops.Init(ctx); err != nil {
 		log.Fatalln(fmt.Errorf("init devops error: %v", err))
 	}
+
+	// 创建apmplus handler
+	cbh, shutdown, err := apmplus.NewApmplusHandler(&apmplus.Config{
+		Host:        "apmplus-cn-beijing.volces.com:4317",
+		AppKey:      os.Getenv("AMP_PLUS_API_KEY"),
+		ServiceName: "fp-article-agent",
+		Release:     "release/v0.0.1",
+	})
+	if err != nil {
+		log.Fatalln(fmt.Errorf("init apmplus error: %v", err))
+	}
+
+	// 设置apmplus为全局callback
+	callbacks.AppendGlobalHandlers(cbh)
+
+	defer func() {
+		if err = shutdown(ctx); err != nil {
+			log.Fatalln(fmt.Errorf("shutdown error: %v", err))
+		}
+	}()
 
 	util.InitSystemPrompt()
 
