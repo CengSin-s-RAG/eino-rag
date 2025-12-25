@@ -2,6 +2,9 @@ package api
 
 import (
 	"agent.article.fp/agent"
+	"agent.article.fp/client"
+	"agent.article.fp/memory"
+	"github.com/cloudwego/eino/schema"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
@@ -32,19 +35,24 @@ func (h *EinoChatAgentHandler) HandleQuery(c echo.Context) error {
 		Query:     req.Question,
 	}
 
-	// 2. 调用 Eino Agent
-	// 注意：这里是同步调用，会阻塞直到 LLM 返回。
-	// 对于超长推理，生产环境通常还是会结合 Temporal 或 SSE (Server-Sent Events)
-	output, err := h.Agent.Runnable.Invoke(ctx, &input)
+	store := memory.NewRedisStore(client.Redis)
+
+	var messages []*schema.Message
+	messages, err := store.Read(ctx, input.SessionId)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "AI processing failed: "+err.Error())
+		return err
 	}
 
-	// 3. 返回结果
-	resp := ChatResp{
-		SessionID:    output.SessionId,
-		ReplyMessage: output.Response.Content,
+	messages = append(messages, schema.UserMessage(input.Query))
+
+	message, err := h.Agent.Runner.Generate(ctx, messages)
+	if err != nil {
+		return err
 	}
 
-	return c.JSON(http.StatusOK, resp)
+	if err = store.Write(ctx, input.SessionId, append(messages, message)); err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, &ChatResp{SessionID: input.SessionId, ReplyMessage: message.Content})
 }

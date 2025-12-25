@@ -24,7 +24,7 @@ func NewRetrieverTool(r retriever.Retriever, name, desc string) tool.BaseTool {
 		// 2. 格式化文档
 		var result string
 		for i, doc := range docs {
-			result += fmt.Sprintf("Document %d:\n%s\n---\n", i+1, doc.Content)
+			result += fmt.Sprintf("Document %d:\n%+v\n---\n", i+1, doc.MetaData["textToIndex"])
 		}
 		return result, nil
 	}

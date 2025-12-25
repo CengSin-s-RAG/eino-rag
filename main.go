@@ -58,7 +58,6 @@ func main() {
 	//client.InitTemporal(cfg.SyncTemporal, &client.SyncTemporal)
 	client.InitMcpClient(cfg.McpServer)
 	client.InitTools()
-	client.InitMysql(cfg.Mysql)
 	defer client.Close()
 
 	// 先初始化所需的 chatModel

@@ -62,7 +62,7 @@ func createStreamableHTTPClient(server string) {
 
 func InitTools() {
 	ctx := context.Background()
-	tools, err := einoMcp.GetTools(ctx, &einoMcp.Config{Cli: McpClient})
+	tools, err := einoMcp.GetTools(ctx, &einoMcp.Config{Cli: McpClient}) // 只提供了InvokeRun方法，不支持stream调用
 	if err != nil {
 		log.Fatalln(fmt.Sprintf("get tools failed, err ", err.Error()))
 	}
