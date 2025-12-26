@@ -52,8 +52,8 @@ func (h *EinoChatAgentHandler) HandleQuery(c echo.Context) error {
 	}
 
 	go func() {
-		store.AddMessage(ctx, input.SessionId, userMessage)
-		store.AddMessage(ctx, input.SessionId, message)
+		_ = store.AddMessage(ctx, input.SessionId, userMessage)
+		_ = store.AddMessage(ctx, input.SessionId, message)
 	}()
 
 	return c.JSON(http.StatusOK, &ChatResp{SessionID: input.SessionId, ReplyMessage: message.Content})

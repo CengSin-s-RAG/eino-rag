@@ -18,6 +18,7 @@ package memory
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -82,7 +83,7 @@ func (s *RedisStore) Query(ctx context.Context, sessionID string, text string, l
 }
 
 func (s *RedisStore) AddMessage(ctx context.Context, sessionID string, msg *schema.Message) error {
-	msgByte, err := EncodeMessage(msg)
+	msgByte, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}
@@ -104,11 +105,11 @@ func (s *RedisStore) GetRecentMessages(ctx context.Context, sessionID string, li
 
 	var msgs []*schema.Message
 	for _, r := range result {
-		msg, err := DecodeMessage([]byte(r))
-		if err != nil {
+		var msg schema.Message
+		if err = json.Unmarshal([]byte(r), &msg); err != nil {
 			return nil, err
 		}
-		msgs = append(msgs, msg)
+		msgs = append(msgs, &msg)
 	}
 	return msgs, nil
 }
