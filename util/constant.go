@@ -19,11 +19,12 @@ var (
 	SystemPrompt string
 )
 
-func InitSystemPrompt() {
-	file, err := os.OpenFile("systemPrompt.md", os.O_RDONLY, 0666)
+func InitSystemPrompt(path string) {
+	file, err := os.OpenFile(path, os.O_RDONLY, 0666)
 	if err != nil {
 		log.Fatalln("open system prompt file failed, err ", err)
 	}
+	defer file.Close()
 
 	contextBtys, err := io.ReadAll(file)
 	if err != nil {

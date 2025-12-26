@@ -47,11 +47,10 @@ func main() {
 		}
 	}()
 
-	util.InitSystemPrompt()
-
 	var cfg config.Config
 	_ = cleanenv.ReadConfig("./config/config.yaml", &cfg)
 
+	util.InitSystemPrompt(cfg.Prompt)
 	client.InitRedis(cfg.Redis)
 	client.InitQdrant(cfg.Qdrant)
 	//client.InitTemporal(cfg.Temporal, &client.Temporal)

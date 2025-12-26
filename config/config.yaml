@@ -1,3 +1,5 @@
+promptPath: "systemPrompt.md"
+
 qdrant:
   host: "localhost"
   port: 6334

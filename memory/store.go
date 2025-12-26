@@ -56,3 +56,26 @@ func DecodeMessages(b []byte) ([]*schema.Message, error) {
 	}
 	return msgs, nil
 }
+
+// EncodeMessage serializes message using Gob.
+func EncodeMessage(msg *schema.Message) ([]byte, error) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	if err := enc.Encode(msg); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// DecodeMessage deserializes message previously encoded by EncodeMessages.
+func DecodeMessage(b []byte) (*schema.Message, error) {
+	if len(b) == 0 {
+		return nil, nil
+	}
+	dec := gob.NewDecoder(bytes.NewReader(b))
+	var msg *schema.Message
+	if err := dec.Decode(&msg); err != nil {
+		return nil, err
+	}
+	return msg, nil
+}

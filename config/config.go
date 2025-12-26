@@ -40,4 +40,5 @@ type Config struct {
 	Redis        *RedisConfig    `yaml:"redis"`
 	Cdc          []Cdc           `yaml:"cdc"`
 	Mysql        *MysqlConfig    `yaml:"fpMysql"`
+	Prompt       string          `yaml:"promptPath"`
 }

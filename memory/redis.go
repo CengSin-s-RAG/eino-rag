@@ -18,6 +18,8 @@ package memory
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strings"
 
 	miniredis "github.com/alicebob/miniredis/v2"
@@ -77,6 +79,38 @@ func (s *RedisStore) Query(ctx context.Context, sessionID string, text string, l
 		}
 	}
 	return out, nil
+}
+
+func (s *RedisStore) AddMessage(ctx context.Context, sessionID string, msg *schema.Message) error {
+	msgByte, err := EncodeMessage(msg)
+	if err != nil {
+		return err
+	}
+
+	return s.cli.RPush(ctx, fmt.Sprintf("chatHistory:%s", sessionID), msgByte).Err()
+}
+
+func (s *RedisStore) GetRecentMessages(ctx context.Context, sessionID string, limit int) ([]*schema.Message, error) {
+	// LRANGE: 获取最后 limit 条
+	// 0 是第一个，-1 是最后一个。 -limit 到 -1 即为最后 limit 条
+	start := -limit
+	result, err := s.cli.LRange(ctx, fmt.Sprintf("chatHistory:%s", sessionID), int64(start), -1).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	var msgs []*schema.Message
+	for _, r := range result {
+		msg, err := DecodeMessage([]byte(r))
+		if err != nil {
+			return nil, err
+		}
+		msgs = append(msgs, msg)
+	}
+	return msgs, nil
 }
 
 // NewMiniRedisClient starts an embedded Redis server for local demos/tests.
