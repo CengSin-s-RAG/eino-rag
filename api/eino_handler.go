@@ -4,9 +4,16 @@ import (
 	"agent.article.fp/agent"
 	"agent.article.fp/client"
 	"agent.article.fp/memory"
+	"agent.article.fp/util"
+	"context"
+	"fmt"
+	"github.com/cloudwego/eino/compose"
+	einoAgent "github.com/cloudwego/eino/flow/agent"
 	"github.com/cloudwego/eino/schema"
 	"github.com/labstack/echo/v4"
+	"log"
 	"net/http"
+	"time"
 )
 
 // EinoChatAgentHandler 结构体用于持有 Agent 实例
@@ -46,14 +53,20 @@ func (h *EinoChatAgentHandler) HandleQuery(c echo.Context) error {
 	userMessage := schema.UserMessage(input.Query)
 	messages = append(messages, userMessage)
 
-	message, err := h.Agent.Runner.Generate(ctx, messages)
+	message, err := h.Agent.Runner.Generate(ctx, messages, einoAgent.WithComposeOptions(compose.WithCallbacks(&util.SimpleLogger{})))
 	if err != nil {
 		return err
 	}
 
 	go func() {
-		_ = store.AddMessage(ctx, input.SessionId, userMessage)
-		_ = store.AddMessage(ctx, input.SessionId, message)
+		aCtx, cancelFunc := context.WithTimeout(context.Background(), time.Second)
+		defer cancelFunc()
+		if err = store.AddMessage(aCtx, input.SessionId, userMessage); err != nil {
+			log.Println(fmt.Sprintf("store add message error: %v", err))
+		}
+		if err = store.AddMessage(aCtx, input.SessionId, message); err != nil {
+			log.Println(fmt.Sprintf("store add message error: %v", err))
+		}
 	}()
 
 	return c.JSON(http.StatusOK, &ChatResp{SessionID: input.SessionId, ReplyMessage: message.Content})

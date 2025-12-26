@@ -5,10 +5,12 @@ import (
 	"agent.article.fp/util"
 	"agent.article.fp/visualize"
 	"context"
+	"fmt"
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/flow/agent/react"
 	"github.com/cloudwego/eino/schema"
+	"time"
 )
 
 // EinoChatAgent 封装编译好的 Runnable，对外提供服务
@@ -78,12 +80,12 @@ func newReactLambdaAgent(ctx context.Context, config openai.ChatModelConfig) (*r
 		ToolsConfig:      compose.ToolsNodeConfig{Tools: client.EinoTools},
 		MaxStep:          20,
 		MessageModifier: func(ctx context.Context, input []*schema.Message) []*schema.Message {
-			if len(input) > 20 { // 滑动窗口，系统提示词和最近的19条信息
-				input = append(input[:1], input[len(input)-19:]...)
+			if len(input) > 3 { // 滑动窗口，系统提示词和最近的19条信息
+				input = append(input[:1], input[len(input)-2:]...)
 			}
 
 			if len(input) > 0 && input[0].Role != schema.System {
-				input = append([]*schema.Message{schema.SystemMessage(util.SystemPrompt)}, input...)
+				input = append([]*schema.Message{schema.SystemMessage(util.SystemPrompt + fmt.Sprintf("\n\n 当前时间: %s", time.Now().Format(time.DateTime)))}, input...)
 			}
 			return input
 		},

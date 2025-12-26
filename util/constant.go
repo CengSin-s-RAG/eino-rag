@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	ChatHistoryFormat        = "chat_history:%s"
+	ChatHistoryFormat        = "chatHistory:%s"
 	CollectionName           = "financial_articles"
 	CollectionFupengshuoName = "fupengshuo_articles"
 	NewsCollectionName       = "724_news_col"
