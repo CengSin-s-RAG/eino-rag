@@ -15,6 +15,18 @@ const (
 	ModelName                = "openai/gpt-5"
 )
 
+const (
+	TopK = 5
+)
+
+var (
+	ScoreThreshold = GetScoreThreshold(0.45)
+)
+
+func GetScoreThreshold(n float64) *float64 {
+	return &n
+}
+
 var (
 	SystemPrompt string
 )

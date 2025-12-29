@@ -8,8 +8,8 @@ import (
 	"os"
 )
 
-// NewEinoEmbedder 在项目中，Embedding 主要是为了给 Retriever 用的。Eino 有一个非常强大的概念叫 Retriever，它会自动调用 Embedder 把用户的 Query 变成向量，然后去向量数据库查。
-func NewEinoEmbedder(ctx context.Context) (embedding.Embedder, error) {
+// newEinoEmbedder 在项目中，Embedding 主要是为了给 Retriever 用的。Eino 有一个非常强大的概念叫 Retriever，它会自动调用 Embedder 把用户的 Query 变成向量，然后去向量数据库查。
+func newEinoEmbedder(ctx context.Context) (embedding.Embedder, error) {
 	apiKey := os.Getenv("OPENROUTER_API_KEY")
 	baseURL := os.Getenv("OPENROUTER_API_BASE_URL")
 	model := "qwen/qwen3-embedding-8b"

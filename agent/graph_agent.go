@@ -50,17 +50,12 @@ func newReactLambdaAgent(ctx context.Context, config openai.ChatModelConfig) (*r
 		return nil, err
 	}
 
-	embedder, err := NewEinoEmbedder(ctx)
+	hybirdRetriever, err := BuildHybridRetriever(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	retrv, err := NewEinoRetriever(ctx, client.Qdrant, embedder)
-	if err != nil {
-		return nil, err
-	}
-
-	kbTool := client.NewRetrieverTool(retrv,
+	kbTool := client.NewRetrieverTool(hybirdRetriever,
 		"search_financial_knowledge",
 		"Use this tool to search for internal financial reports, news, and articles.",
 	)

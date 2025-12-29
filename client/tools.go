@@ -23,8 +23,9 @@ func NewRetrieverTool(r retriever.Retriever, name, desc string) tool.BaseTool {
 
 		// 2. 格式化文档
 		var result string
-		for i, doc := range docs {
-			result += fmt.Sprintf("Document %d:\n%+v\n---\n", i+1, doc.MetaData["textToIndex"])
+		for _, doc := range docs {
+			result += fmt.Sprintf("[%s] 来源:%s (发布时间:%s)\n内容:%v\n---\n",
+				doc.ID, doc.MetaData["title"], doc.MetaData["created_at"], doc.MetaData["textToIndex"])
 		}
 		return result, nil
 	}
