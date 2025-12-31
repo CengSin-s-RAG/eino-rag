@@ -24,8 +24,8 @@ func NewRetrieverTool(r retriever.Retriever, name, desc string) tool.BaseTool {
 		// 2. 格式化文档
 		var result string
 		for _, doc := range docs {
-			result += fmt.Sprintf("[%s] 来源:%s (发布时间:%s)\n内容:%v\n---\n",
-				doc.ID, doc.MetaData["title"], doc.MetaData["created_at"], doc.MetaData["textToIndex"])
+			result += fmt.Sprintf("文章ID:[%s] 来源:%s (发布时间:%s)\n内容:%v文章链接:%s\n---\n",
+				doc.ID, doc.MetaData["title"], doc.MetaData["created_at"], doc.MetaData["textToIndex"], fmt.Sprintf("https://wallstreetcn.com/premium/articles/%s", doc.MetaData["id"]))
 		}
 		return result, nil
 	}

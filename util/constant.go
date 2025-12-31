@@ -20,7 +20,7 @@ const (
 )
 
 var (
-	ScoreThreshold = GetScoreThreshold(0.45)
+	ScoreThreshold = GetScoreThreshold(0.6)
 )
 
 func GetScoreThreshold(n float64) *float64 {
