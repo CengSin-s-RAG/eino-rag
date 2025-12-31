@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"agent.article.fp/agent/component"
 	"agent.article.fp/client"
 	"agent.article.fp/util"
 	"agent.article.fp/visualize"
@@ -29,7 +30,7 @@ func NewEinoChatAgent(ctx context.Context, config openai.ChatModelConfig) (*Eino
 
 	// 1. 创建 Graph 容器
 	// 泛型明确指定了输入输出都是 *ChatState
-	graph := compose.NewGraph[*ChatState, *ChatState]()
+	graph := compose.NewGraph[*schema.Message, *component.RerankState]()
 
 	_ = graph.AddGraphNode("react_agent", anyGraph, opts...)
 	// 3. 定义边 (AddEdge) - 决定执行顺序

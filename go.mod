@@ -7,6 +7,7 @@ require (
 	github.com/chromedp/chromedp v0.14.2
 	github.com/cloudwego/eino v0.7.11
 	github.com/cloudwego/eino-ext/callbacks/apmplus v0.0.2
+	github.com/cloudwego/eino-ext/components/document/transformer/reranker/score v0.0.0-20251229121631-716047332ba5
 	github.com/cloudwego/eino-ext/components/model/openai v0.1.6
 	github.com/cloudwego/eino-ext/components/retriever/qdrant v0.0.0-20251219073121-0fff9abbb56c
 	github.com/cloudwego/eino-ext/components/tool/mcp v0.0.8
@@ -16,22 +17,18 @@ require (
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/labstack/echo/v4 v4.14.0
 	github.com/mark3labs/mcp-go v0.43.2
-	github.com/meguminnnnnnnnn/go-openai v0.1.1
 	github.com/qdrant/go-client v1.16.2
 	github.com/redis/go-redis/v9 v9.17.2
-	github.com/sashabaranov/go-openai v1.41.2
 	go.temporal.io/sdk v1.38.0
-	gorm.io/driver/mysql v1.6.0
-	gorm.io/gorm v1.31.1
 )
 
-replace (
-	github.com/cloudwego/eino-ext/components/retriever/qdrant => /Users/cengsin/GolandWorkSapce2025/eino-ext/components/retriever/qdrant
-)
+replace github.com/cloudwego/eino-ext/components/retriever/qdrant => /Users/cengsin/GolandWorkSapce2025/eino-ext/components/retriever/qdrant
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/BurntSushi/toml v1.2.1 // indirect
+	github.com/PuerkitoBio/goquery v1.11.0 // indirect
+	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
@@ -73,6 +70,7 @@ require (
 	github.com/matoous/go-nanoid v1.5.1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/meguminnnnnnnnn/go-openai v0.1.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/nexus-rpc/sdk-go v0.5.1 // indirect
@@ -118,5 +116,7 @@ require (
 	google.golang.org/grpc v1.76.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gorm.io/driver/mysql v1.6.0 // indirect
+	gorm.io/gorm v1.31.1 // indirect
 	olympos.io/encoding/edn v0.0.0-20201019073823-d3554ca0b0a3 // indirect
 )

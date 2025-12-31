@@ -20,7 +20,8 @@ const (
 )
 
 var (
-	ScoreThreshold = GetScoreThreshold(0.6)
+	ScoreTs        = 0.6
+	ScoreThreshold = GetScoreThreshold(ScoreTs)
 )
 
 func GetScoreThreshold(n float64) *float64 {
@@ -29,9 +30,10 @@ func GetScoreThreshold(n float64) *float64 {
 
 var (
 	SystemPrompt string
+	RerankPrompt string
 )
 
-func InitSystemPrompt(path string) {
+func InitPrompt(path string) string {
 	file, err := os.OpenFile(path, os.O_RDONLY, 0666)
 	if err != nil {
 		log.Fatalln("open system prompt file failed, err ", err)
@@ -43,5 +45,5 @@ func InitSystemPrompt(path string) {
 		log.Fatalln(fmt.Errorf("read system prompt file failed, err %v", err))
 	}
 
-	SystemPrompt = string(contextBtys)
+	return string(contextBtys)
 }

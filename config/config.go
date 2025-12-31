@@ -32,13 +32,23 @@ type MysqlConfig struct {
 	DbName   string `yaml:"DB"`
 }
 
-type Config struct {
-	Qdrant       *QdrantConfig   `yaml:"qdrant"`
-	Temporal     *TemporalConfig `yaml:"temporal"`
-	SyncTemporal *TemporalConfig `yaml:"syncTemporal"`
-	McpServer    string          `yaml:"mcpServer"`
-	Redis        *RedisConfig    `yaml:"redis"`
-	Cdc          []Cdc           `yaml:"cdc"`
-	Mysql        *MysqlConfig    `yaml:"fpMysql"`
-	Prompt       string          `yaml:"promptPath"`
+type RerankConfig struct {
+	Prompt string `yaml:"prompt"`
+	Url    string `yaml:"url"`
 }
+
+type Config struct {
+	Qdrant        *QdrantConfig   `yaml:"qdrant"`
+	Temporal      *TemporalConfig `yaml:"temporal"`
+	SyncTemporal  *TemporalConfig `yaml:"syncTemporal"`
+	McpServer     string          `yaml:"mcpServer"`
+	Redis         *RedisConfig    `yaml:"redis"`
+	Cdc           []Cdc           `yaml:"cdc"`
+	IvankaContent *MysqlConfig    `yaml:"ivankaContent"`
+	RagPrompt     string          `yaml:"ragPromptPath"`
+	Rerank        *RerankConfig   `yaml:"rerank"`
+}
+
+var (
+	Cfg *Config
+)

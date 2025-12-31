@@ -1,4 +1,8 @@
-promptPath: "systemPrompt.md"
+ragPromptPath: "systemPrompt.md"
+
+rerank:
+  prompt: "rerankSystemPrompt.txt"
+  url: "http://localhost:8086/v2/rerank"
 
 qdrant:
   host: "localhost"
@@ -19,7 +23,7 @@ redis:
   password: ""
   DB: 1
 
-fpMysql:
+ivankaContent:
   host: "localhost"
   port: 3306
   userName: "root"

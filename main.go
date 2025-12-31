@@ -2,10 +2,10 @@ package main
 
 import (
 	"agent.article.fp/agent"
+	"agent.article.fp/agent/component"
 	"agent.article.fp/api"
 	"agent.article.fp/client"
 	"agent.article.fp/config"
-	"agent.article.fp/util"
 	"context"
 	"fmt"
 	"github.com/cloudwego/eino-ext/callbacks/apmplus"
@@ -13,6 +13,7 @@ import (
 	"github.com/cloudwego/eino-ext/devops"
 	"github.com/cloudwego/eino/callbacks"
 	"github.com/cloudwego/eino/schema"
+	"github.com/eino-contrib/jsonschema"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -47,20 +48,11 @@ func main() {
 		}
 	}()
 
-	var cfg config.Config
-	_ = cleanenv.ReadConfig("./config/config.yaml", &cfg)
+	_ = cleanenv.ReadConfig("./config/config.yaml", &config.Cfg)
 
-	util.InitSystemPrompt(cfg.Prompt)
-	client.InitRedis(cfg.Redis)
-	client.InitQdrant(cfg.Qdrant)
-	//client.InitTemporal(cfg.Temporal, &client.Temporal)
-	//client.InitTemporal(cfg.SyncTemporal, &client.SyncTemporal)
-	client.InitMcpClient(cfg.McpServer)
-	client.InitTools()
+	client.Init()
 	defer client.Close()
 
-	// 先初始化所需的 chatModel
-	// 先初始化所需的 chatModel
 	conf := openai.ChatModelConfig{
 		APIKey:  os.Getenv("OPENROUTER_API_KEY"),
 		BaseURL: os.Getenv("OPENROUTER_API_BASE_URL"),
@@ -71,12 +63,23 @@ func main() {
 		log.Fatalln(fmt.Errorf("NewEinoChatAgent: %v", err))
 	}
 
-	einoHandler := api.NewEinoChatAgentHandler(chatAgent)
+	schemaDesc := jsonschema.Reflect(&component.RerankState{})
+
+	conf.ResponseFormat = &openai.ChatCompletionResponseFormat{
+		Type: openai.ChatCompletionResponseFormatTypeJSONSchema,
+		JSONSchema: &openai.ChatCompletionResponseFormatJSONSchema{
+			JSONSchema: schemaDesc,
+		},
+	}
+	rerankAgent, err := agent.NewEinoChatAgent(ctx, conf)
+
+	einoHandler := api.NewEinoChatAgentHandler(chatAgent, rerankAgent)
 
 	e := echo.New()
 	e.Use(middleware.CORS())
 
 	e.POST("/v2/chat", einoHandler.HandleQuery)
+	e.POST("/v2/rerank", einoHandler.HandleRerank)
 
 	if err := e.Start(":8086"); err != nil {
 		log.Fatalln(err)

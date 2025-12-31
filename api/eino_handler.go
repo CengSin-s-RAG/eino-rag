@@ -2,6 +2,7 @@ package api
 
 import (
 	"agent.article.fp/agent"
+	"agent.article.fp/agent/component"
 	"agent.article.fp/client"
 	"agent.article.fp/memory"
 	"agent.article.fp/util"
@@ -16,18 +17,53 @@ import (
 	"time"
 )
 
-// EinoChatAgentHandler 结构体用于持有 Agent 实例
+// EinoChatAgentHandler 结构体用于持有 Chat 实例
 type EinoChatAgentHandler struct {
-	Agent *agent.EinoChatAgent
+	Chat   *agent.EinoChatAgent
+	Rerank *agent.EinoChatAgent
 }
 
-func NewEinoChatAgentHandler(agent *agent.EinoChatAgent) *EinoChatAgentHandler {
+func NewEinoChatAgentHandler(chat, rerank *agent.EinoChatAgent) *EinoChatAgentHandler {
 	return &EinoChatAgentHandler{
-		Agent: agent,
+		Chat:   chat,
+		Rerank: rerank,
 	}
 }
 
 const ContextWindowSize = 20
+
+func (h *EinoChatAgentHandler) HandleRerank(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	var req component.RerankReq
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	userMsg := fmt.Sprintf("【用户问题】\n %s \n【候选文档列表】", req.Question)
+	for _, document := range req.Documents {
+		userMsg += fmt.Sprintf("\n%s\n", document)
+	}
+
+	input := append([]*schema.Message{schema.SystemMessage(util.RerankPrompt)}, schema.UserMessage(userMsg))
+
+	message, err := h.Rerank.Runner.Generate(ctx, input,
+		einoAgent.WithComposeOptions(compose.WithCallbacks(&util.SimpleLogger{})))
+	if err != nil {
+		return err
+	}
+
+	// 创建解析器
+	parser := schema.NewMessageJSONParser[component.RerankState](&schema.MessageJSONParseConfig{
+		ParseFrom: schema.MessageParseFromContent,
+	})
+	items, err := parser.Parse(ctx, message)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, items)
+}
 
 func (h *EinoChatAgentHandler) HandleQuery(c echo.Context) error {
 	ctx := c.Request().Context()
@@ -53,7 +89,7 @@ func (h *EinoChatAgentHandler) HandleQuery(c echo.Context) error {
 	userMessage := schema.UserMessage(input.Query)
 	messages = append(messages, userMessage)
 
-	message, err := h.Agent.Runner.Generate(ctx, messages, einoAgent.WithComposeOptions(compose.WithCallbacks(&util.SimpleLogger{})))
+	message, err := h.Chat.Runner.Generate(ctx, messages, einoAgent.WithComposeOptions(compose.WithCallbacks(&util.SimpleLogger{})))
 	if err != nil {
 		return err
 	}
