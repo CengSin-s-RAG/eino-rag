@@ -74,7 +74,7 @@ func newReactLambdaAgent(ctx context.Context, config openai.ChatModelConfig) (*r
 	agentConfig := react.AgentConfig{
 		ToolCallingModel: chatModel,
 		ToolsConfig:      compose.ToolsNodeConfig{Tools: client.EinoTools},
-		MaxStep:          20,
+		MaxStep:          6,
 		MessageModifier: func(ctx context.Context, input []*schema.Message) []*schema.Message {
 			if len(input) > 3 { // 滑动窗口，系统提示词和最近的19条信息
 				input = append(input[:1], input[len(input)-2:]...)
