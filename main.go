@@ -54,9 +54,10 @@ func main() {
 	defer client.Close()
 
 	conf := openai.ChatModelConfig{
-		APIKey:  os.Getenv("OPENROUTER_API_KEY"),
-		BaseURL: os.Getenv("OPENROUTER_API_BASE_URL"),
-		Model:   os.Getenv("OPENROUTER_MODEL"),
+		APIKey:      os.Getenv("OPENROUTER_API_KEY"),
+		BaseURL:     os.Getenv("OPENROUTER_API_BASE_URL"),
+		Model:       os.Getenv("OPENROUTER_MODEL"),
+		Temperature: &[]float32{0.05}[0],
 	}
 	chatAgent, err := agent.NewEinoChatAgent(ctx, conf)
 	if err != nil {
@@ -64,22 +65,44 @@ func main() {
 	}
 
 	schemaDesc := jsonschema.Reflect(&component.RerankState{})
-
-	conf.ResponseFormat = &openai.ChatCompletionResponseFormat{
-		Type: openai.ChatCompletionResponseFormatTypeJSONSchema,
-		JSONSchema: &openai.ChatCompletionResponseFormatJSONSchema{
-			JSONSchema: schemaDesc,
+	rerankConf := openai.ChatModelConfig{
+		APIKey:  os.Getenv("OPENROUTER_API_KEY"),
+		BaseURL: os.Getenv("OPENROUTER_API_BASE_URL"),
+		Model:   "qwen/qwen-2.5-7b-instruct",
+		ResponseFormat: &openai.ChatCompletionResponseFormat{
+			Type: openai.ChatCompletionResponseFormatTypeJSONSchema,
+			JSONSchema: &openai.ChatCompletionResponseFormatJSONSchema{
+				JSONSchema: schemaDesc,
+			},
 		},
+		Temperature: &[]float32{0.01}[0],
 	}
-	rerankAgent, err := agent.NewEinoChatAgent(ctx, conf)
 
-	einoHandler := api.NewEinoChatAgentHandler(chatAgent, rerankAgent)
+	client.RerankModel, err = openai.NewChatModel(ctx, &rerankConf)
+	if err != nil {
+		log.Fatalln(fmt.Errorf("NewChatModel: %v", err))
+	}
+
+	rewriteConf := openai.ChatModelConfig{
+		APIKey:      os.Getenv("OPENROUTER_API_KEY"),
+		BaseURL:     os.Getenv("OPENROUTER_API_BASE_URL"),
+		Model:       "xiaomi/mimo-v2-flash:free",
+		Temperature: &[]float32{0.02}[0],
+	}
+	client.QueryRewriteModel, err = openai.NewChatModel(ctx, &rewriteConf)
+	if err != nil {
+		log.Fatalln(fmt.Errorf("NewChatModel: %v", err))
+	}
+
+	einoHandler := api.NewEinoChatAgentHandler(chatAgent)
 
 	e := echo.New()
 	e.Use(middleware.CORS())
 
-	e.POST("/v2/chat", einoHandler.HandleQuery)
-	e.POST("/v2/rerank", einoHandler.HandleRerank)
+	v2 := e.Group("/v2")
+	v2.POST("/chat", einoHandler.HandleQuery)
+	v2.POST("/rerank", einoHandler.HandleRerank)
+	v2.POST("/rewrite", einoHandler.HandleRewrite)
 
 	if err := e.Start(":8086"); err != nil {
 		log.Fatalln(err)

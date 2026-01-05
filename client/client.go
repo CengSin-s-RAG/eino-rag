@@ -87,6 +87,7 @@ func InitRedis(cfg *config.RedisConfig) {
 func Init() {
 	util.SystemPrompt = util.InitPrompt(config.Cfg.RagPrompt)
 	util.RerankPrompt = util.InitPrompt(config.Cfg.Rerank.Prompt)
+	util.QueryRewritePrompt = util.InitPrompt(config.Cfg.Rewrite.Prompt)
 	InitRedis(config.Cfg.Redis)
 	InitQdrant(config.Cfg.Qdrant)
 	//client.InitTemporal(config.Cfg.Temporal, &client.Temporal)
@@ -97,8 +98,8 @@ func Init() {
 }
 
 func Close() {
-	Temporal.Close()
-	SyncTemporal.Close()
+	//Temporal.Close()
+	//SyncTemporal.Close()
 	Qdrant.Close()
 	McpClient.Close()
 	Redis.Close()

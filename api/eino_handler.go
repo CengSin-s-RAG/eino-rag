@@ -19,18 +19,33 @@ import (
 
 // EinoChatAgentHandler 结构体用于持有 Chat 实例
 type EinoChatAgentHandler struct {
-	Chat   *agent.EinoChatAgent
-	Rerank *agent.EinoChatAgent
+	Chat *agent.EinoChatAgent
 }
 
-func NewEinoChatAgentHandler(chat, rerank *agent.EinoChatAgent) *EinoChatAgentHandler {
+func NewEinoChatAgentHandler(chat *agent.EinoChatAgent) *EinoChatAgentHandler {
 	return &EinoChatAgentHandler{
-		Chat:   chat,
-		Rerank: rerank,
+		Chat: chat,
 	}
 }
 
 const ContextWindowSize = 20
+
+func (h *EinoChatAgentHandler) HandleRewrite(c echo.Context) error {
+	ctx := c.Request().Context()
+	var req component.RewriteReq
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	userMsg := fmt.Sprintf("【历史对话记录】\n %s \n【当前用户问题】%s", req.GetHistory(), req.Query)
+
+	msg, err := client.QueryRewriteModel.Generate(ctx, append([]*schema.Message{schema.SystemMessage(util.QueryRewritePrompt)}, schema.UserMessage(userMsg)))
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, msg.Content)
+}
 
 func (h *EinoChatAgentHandler) HandleRerank(c echo.Context) error {
 	ctx := c.Request().Context()
@@ -47,8 +62,7 @@ func (h *EinoChatAgentHandler) HandleRerank(c echo.Context) error {
 
 	input := append([]*schema.Message{schema.SystemMessage(util.RerankPrompt)}, schema.UserMessage(userMsg))
 
-	message, err := h.Rerank.Runner.Generate(ctx, input,
-		einoAgent.WithComposeOptions(compose.WithCallbacks(&util.SimpleLogger{})))
+	message, err := client.RerankModel.Generate(ctx, input)
 	if err != nil {
 		return err
 	}
@@ -89,7 +103,7 @@ func (h *EinoChatAgentHandler) HandleQuery(c echo.Context) error {
 	userMessage := schema.UserMessage(input.Query)
 	messages = append(messages, userMessage)
 
-	message, err := h.Chat.Runner.Generate(ctx, messages, einoAgent.WithComposeOptions(compose.WithCallbacks(&util.SimpleLogger{})))
+	message, err := h.Chat.Runner.Generate(ctx, append([]*schema.Message{schema.SystemMessage(util.GetSystemPrompt())}, messages...), einoAgent.WithComposeOptions(compose.WithCallbacks(&util.SimpleLogger{})))
 	if err != nil {
 		return err
 	}

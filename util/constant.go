@@ -29,8 +29,9 @@ func GetScoreThreshold(n float64) *float64 {
 }
 
 var (
-	SystemPrompt string
-	RerankPrompt string
+	SystemPrompt       string
+	RerankPrompt       string
+	QueryRewritePrompt string
 )
 
 func InitPrompt(path string) string {

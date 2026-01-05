@@ -4,14 +4,11 @@ import (
 	"agent.article.fp/agent/component"
 	"agent.article.fp/client"
 	"agent.article.fp/util"
-	"agent.article.fp/visualize"
 	"context"
-	"fmt"
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/flow/agent/react"
 	"github.com/cloudwego/eino/schema"
-	"time"
 )
 
 // EinoChatAgent 封装编译好的 Runnable，对外提供服务
@@ -24,19 +21,6 @@ func NewEinoChatAgent(ctx context.Context, config openai.ChatModelConfig) (*Eino
 	if err != nil {
 		return nil, err
 	}
-
-	anyGraph, opts := reactAgent.ExportGraph()
-	genAgentConfigImage := visualize.NewMermaidGenerator("/Users/cengsin/my_projects/Eino-Projects/fupeng-article-agent")
-
-	// 1. 创建 Graph 容器
-	// 泛型明确指定了输入输出都是 *ChatState
-	graph := compose.NewGraph[*schema.Message, *component.RerankState]()
-
-	_ = graph.AddGraphNode("react_agent", anyGraph, opts...)
-	// 3. 定义边 (AddEdge) - 决定执行顺序
-	_ = graph.AddEdge(compose.START, "react_agent")
-	_ = graph.AddEdge("react_agent", compose.END)
-	_, _ = graph.Compile(ctx, compose.WithGraphCompileCallbacks(genAgentConfigImage))
 	return &EinoChatAgent{Runner: reactAgent}, nil
 }
 
@@ -55,12 +39,10 @@ func newReactLambdaAgent(ctx context.Context, config openai.ChatModelConfig) (*r
 	if err != nil {
 		return nil, err
 	}
-
 	kbTool := client.NewRetrieverTool(hybirdRetriever,
 		"search_financial_knowledge",
 		"Use this tool to search for internal financial reports, news, and articles.",
 	)
-
 	info, err := kbTool.Info(ctx)
 	if err != nil {
 		return nil, err
@@ -76,16 +58,14 @@ func newReactLambdaAgent(ctx context.Context, config openai.ChatModelConfig) (*r
 		ToolsConfig:      compose.ToolsNodeConfig{Tools: client.EinoTools},
 		MaxStep:          6,
 		MessageModifier: func(ctx context.Context, input []*schema.Message) []*schema.Message {
-			if len(input) > 3 { // 滑动窗口，系统提示词和最近的19条信息
-				input = append(input[:1], input[len(input)-2:]...)
+			// 使用小模型进行摘要
+			if len(input) > 19 && schema.User == input[len(input)-1].Role {
+				newQuery, err := component.QueryRewriting(input[1:])
+				if err != nil {
+					return input
+				}
+				return []*schema.Message{schema.SystemMessage(util.GetSystemPrompt()), schema.UserMessage(newQuery)}
 			}
-
-			if len(input) > 0 && input[0].Role != schema.System {
-				input = append([]*schema.Message{schema.SystemMessage(util.SystemPrompt + fmt.Sprintf("\n\n 当前时间: %s", time.Now().Format(time.DateTime)))}, input...)
-			}
-			return input
-		},
-		MessageRewriter: func(ctx context.Context, input []*schema.Message) []*schema.Message {
 			return input
 		},
 	}
