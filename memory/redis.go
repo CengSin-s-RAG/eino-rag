@@ -89,14 +89,13 @@ func (s *RedisStore) AddMessage(ctx context.Context, sessionID string, msg *sche
 		return err
 	}
 
-	return s.cli.RPush(ctx, fmt.Sprintf(util.ChatHistoryFormat, sessionID), msgByte).Err()
+	return s.cli.RPush(ctx, fmt.Sprintf(util.ChatHistoryPrefix+":%s", sessionID), msgByte).Err()
 }
 
-func (s *RedisStore) GetRecentMessages(ctx context.Context, sessionID string, limit int) ([]*schema.Message, error) {
+func (s *RedisStore) GetRecentMessages(ctx context.Context, sessionID string, start, stop int64) ([]*schema.Message, error) {
 	// LRANGE: 获取最后 limit 条
 	// 0 是第一个，-1 是最后一个。 -limit 到 -1 即为最后 limit 条
-	start := -limit
-	result, err := s.cli.LRange(ctx, fmt.Sprintf(util.ChatHistoryFormat, sessionID), int64(start), -1).Result()
+	result, err := s.cli.LRange(ctx, fmt.Sprintf(util.ChatHistoryPrefix+":%s", sessionID), start, stop).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return nil, nil

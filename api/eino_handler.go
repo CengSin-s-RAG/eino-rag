@@ -96,7 +96,7 @@ func (h *EinoChatAgentHandler) HandleQuery(c echo.Context) error {
 
 	store := memory.NewRedisStore(client.Redis)
 	var messages []*schema.Message
-	messages, err := store.GetRecentMessages(ctx, input.SessionId, ContextWindowSize)
+	messages, err := store.GetRecentMessages(ctx, input.SessionId, -ContextWindowSize, -1)
 	if err != nil {
 		return err
 	}

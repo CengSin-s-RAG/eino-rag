@@ -95,6 +95,7 @@ func main() {
 	}
 
 	einoHandler := api.NewEinoChatAgentHandler(chatAgent)
+	session := api.NewChatSession()
 
 	e := echo.New()
 	e.Use(middleware.CORS())
@@ -103,6 +104,10 @@ func main() {
 	v2.POST("/chat", einoHandler.HandleQuery)
 	v2.POST("/rerank", einoHandler.HandleRerank)
 	v2.POST("/rewrite", einoHandler.HandleRewrite)
+
+	ses := v2.Group("/session")
+	ses.GET("/list", session.List)
+	ses.GET("/history", session.History)
 
 	if err := e.Start(":8086"); err != nil {
 		log.Fatalln(err)
