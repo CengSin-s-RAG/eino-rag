@@ -63,6 +63,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(fmt.Errorf("NewEinoChatAgent: %v", err))
 	}
+	einoHandler := api.NewEinoChatAgentHandler(chatAgent)
 
 	schemaDesc := jsonschema.Reflect(&component.RerankState{})
 	rerankConf := openai.ChatModelConfig{
@@ -77,7 +78,6 @@ func main() {
 		},
 		Temperature: &[]float32{0.01}[0],
 	}
-
 	client.RerankModel, err = openai.NewChatModel(ctx, &rerankConf)
 	if err != nil {
 		log.Fatalln(fmt.Errorf("NewChatModel: %v", err))
@@ -94,7 +94,6 @@ func main() {
 		log.Fatalln(fmt.Errorf("NewChatModel: %v", err))
 	}
 
-	einoHandler := api.NewEinoChatAgentHandler(chatAgent)
 	session := api.NewChatSession()
 
 	e := echo.New()

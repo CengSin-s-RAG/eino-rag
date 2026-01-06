@@ -10,6 +10,7 @@ import (
 const (
 	ChatHistoryPrefix        = "chatHistory"
 	CollectionName           = "financial_articles"
+	CollectionFupengshuo     = "fupengshuo-contents"
 	CollectionFupengshuoName = "fupengshuo_articles"
 	NewsCollectionName       = "724_news_col"
 	ModelName                = "openai/gpt-5"

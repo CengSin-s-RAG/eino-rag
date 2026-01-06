@@ -20,7 +20,7 @@ import (
 func newVectorRetriever(ctx context.Context, client *qdrant.Client, embedder embedding.Embedder) (retriever.Retriever, error) {
 	return einoQdrant.NewRetriever(ctx, &einoQdrant.Config{
 		Client:     client,
-		Collection: util.CollectionFupengshuoName,
+		Collection: util.CollectionFupengshuo,
 		Embedding:  embedder, // Eino 会自动用这个 embedder 把 query 转向量
 		// 搜索参数
 		TopK:           util.TopK,           // 每次取回 5 篇文章
@@ -48,7 +48,7 @@ func (f *FullTextRetriever) Retrieve(ctx context.Context, query string, opts ...
 		},
 	}
 	points, err := f.client.Query(ctx, &qdrant.QueryPoints{
-		CollectionName: util.CollectionFupengshuoName,
+		CollectionName: util.CollectionFupengshuo,
 		Filter:         &filter,
 		Limit:          &[]uint64{util.TopK}[0],
 		WithPayload:    qdrant.NewWithPayload(true),
@@ -224,12 +224,12 @@ func (h *hybridRetriever) Retrieve(ctx context.Context, query string, opts ...re
 	return returnDocs, nil
 }
 
-func (h *hybridRetriever) unique(docs []*schema.Document) ([]string, []*schema.Document) {
-	seen := make(map[string]bool)
-	var ids []string
+func (h *hybridRetriever) unique(docs []*schema.Document) ([]int64, []*schema.Document) {
+	seen := make(map[int64]bool)
+	var ids []int64
 	uniqueDocs := make([]*schema.Document, 0, len(docs))
 	for _, doc := range docs {
-		id := doc.MetaData["id"].(string)
+		id := doc.MetaData["id"].(int64)
 		if !seen[id] {
 			seen[id] = true
 			uniqueDocs = append(uniqueDocs, doc)
