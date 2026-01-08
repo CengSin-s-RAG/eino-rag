@@ -17,11 +17,11 @@ const (
 )
 
 const (
-	TopK = 5
+	TopK = 10
 )
 
 var (
-	ScoreTs        = 0.6
+	ScoreTs        = 0.5
 	ScoreThreshold = GetScoreThreshold(ScoreTs)
 )
 
