@@ -55,6 +55,9 @@ func (h *EinoChatAgentHandler) HandleRerank(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
+	// todo 基于BM25算法对文档进行重排序
+
+	// 让大模型对文档进行排序
 	userMsg := fmt.Sprintf("【用户问题】\n %s \n【候选文档列表】", req.Question)
 	for _, document := range req.Documents {
 		userMsg += fmt.Sprintf("\n%s\n", document)
@@ -76,6 +79,9 @@ func (h *EinoChatAgentHandler) HandleRerank(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
+	// todo 需要在接口中对结果进行分数纬度的降序排序，目前是在调用接口的逻辑中处理的
+
+	// todo 根据文档来源、发布时间进行排序
 	return c.JSON(http.StatusOK, items)
 }
 
@@ -94,6 +100,11 @@ func (h *EinoChatAgentHandler) HandleQuery(c echo.Context) error {
 		Query:     req.Question,
 	}
 
+	// todo 输入消毒 识别用户输入是否危险
+	if err := h.CheckInput(req.Question); err != nil {
+		return c.JSON(http.StatusOK, err.Error())
+	}
+
 	store := memory.NewRedisStore(client.Redis)
 	var messages []*schema.Message
 	messages, err := store.GetRecentMessages(ctx, input.SessionId, -ContextWindowSize, -1)
@@ -108,6 +119,11 @@ func (h *EinoChatAgentHandler) HandleQuery(c echo.Context) error {
 		return err
 	}
 
+	// todo 输出审查 识别并拦截仇恨言论、偏见内容、毒性语言或违反公司政策的信息
+	if err = h.CheckOutput(message.Content); err != nil {
+		return c.JSON(http.StatusOK, err.Error())
+	}
+
 	go func() {
 		aCtx, cancelFunc := context.WithTimeout(context.Background(), time.Second)
 		defer cancelFunc()
@@ -120,4 +136,14 @@ func (h *EinoChatAgentHandler) HandleQuery(c echo.Context) error {
 	}()
 
 	return c.JSON(http.StatusOK, &ChatResp{SessionID: input.SessionId, ReplyMessage: message.Content})
+}
+
+func (h *EinoChatAgentHandler) CheckInput(question string) error {
+	// todo 增加输入内容的校验
+	return nil
+}
+
+func (h *EinoChatAgentHandler) CheckOutput(content string) error {
+	// todo 增加输出内容的校验
+	return nil
 }
