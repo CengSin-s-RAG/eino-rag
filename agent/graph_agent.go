@@ -25,17 +25,16 @@ func NewEinoChatAgent(ctx context.Context, config openai.ChatModelConfig) (*Eino
 }
 
 func newReactLambdaAgent(ctx context.Context, config openai.ChatModelConfig) (*react.Agent, error) {
-	// Node: LLM (这里我们将 build 逻辑其实应该提出来，避免每次 Invoke 都 NewModel)
-	// 为了性能，我们先在外面初始化好 Model 和 Template
-	// 1. 初始化组件 (生产环境建议在 build 时初始化一次，为了代码清晰这里仅做演示)
-	// 实际项目中，chatModel 和 tmpl 应该在 NewEinoAgent 时创建好并闭包进来
-	// 1. 定义 Chat Model (复用你的配置)
-	chatModel, err := openai.NewChatModel(ctx, &config)
+	hybirdRetriever, err := component.BuildContentRetriever(ctx, &component.MyContentRetrieverConfig{
+		ColName:    util.CollectionFupengshuo,
+		Retrievers: []string{"vectors", "full_text"},
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	hybirdRetriever, err := BuildHybridRetriever(ctx)
+	// 1. 定义 Chat Model (复用你的配置)
+	chatModel, err := openai.NewChatModel(ctx, &config)
 	if err != nil {
 		return nil, err
 	}
