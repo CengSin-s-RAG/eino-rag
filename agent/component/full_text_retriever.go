@@ -1,78 +1,52 @@
 package component
 
 import (
+	"agent.article.fp/client"
+	"agent.article.fp/model"
 	"agent.article.fp/util"
 	"context"
 	"fmt"
 	"github.com/cloudwego/eino/components/retriever"
 	"github.com/cloudwego/eino/schema"
-	"github.com/qdrant/go-client/qdrant"
 )
 
 type FullTextRetriever struct {
-	client       *qdrant.Client
-	returnFields []string
-	colName      string
+	colName string
 }
 
 func (f *FullTextRetriever) Retrieve(ctx context.Context, query string, opts ...retriever.Option) ([]*schema.Document, error) {
-	filter := qdrant.Filter{
-		Must: []*qdrant.Condition{
-			qdrant.NewMatchText("textToIndex", query),
-		},
-	}
-	points, err := f.client.Query(ctx, &qdrant.QueryPoints{
-		CollectionName: f.colName,
-		Filter:         &filter,
-		Limit:          &[]uint64{util.TopK}[0],
-		WithPayload:    qdrant.NewWithPayload(true),
-	})
+	// 使用 PostgreSQL 的全文搜索功能
+	// plainto_tsquery 可以处理普通文本查询，自动处理空格和标点
+	
+	var results []model.VectorStore
+	err := client.IvankaContent.
+		Raw(`
+			SELECT *
+			FROM vector_store
+			WHERE collection = $1
+			AND to_tsvector('english', text_to_index) @@ plainto_tsquery('english', $2)
+			ORDER BY ts_rank(to_tsvector('english', text_to_index), plainto_tsquery('english', $3)) DESC
+			LIMIT $4
+		`, f.colName, query, query, util.TopK).
+		Scan(&results).Error
+	
 	if err != nil {
 		return nil, err
 	}
 
 	var docs []*schema.Document
-	for _, point := range points {
+	for _, result := range results {
 		doc := &schema.Document{
-			Content:  "",
-			MetaData: map[string]any{},
-		}
-		if point.Id != nil {
-			if uuid := point.Id.GetUuid(); uuid != "" {
-				doc.ID = uuid
-			} else {
-				doc.ID = fmt.Sprintf("%d", point.Id.GetNum())
-			}
-		}
-
-		for _, field := range f.returnFields {
-			val, found := point.Payload[field]
-			if !found {
-				return nil, fmt.Errorf("[defaultResultParser] field=%s not found in payload, point=%v", field, point)
-			}
-
-			if field == "content" {
-				doc.Content = val.GetStringValue()
-			} else if field == "metadata" {
-				doc.MetaData["metadata"] = val.GetStructValue().Fields
-			} else {
-				switch val.GetKind().(type) {
-				case *qdrant.Value_NullValue:
-					doc.MetaData[field] = val.GetNullValue()
-				case *qdrant.Value_DoubleValue:
-					doc.MetaData[field] = val.GetDoubleValue()
-				case *qdrant.Value_IntegerValue:
-					doc.MetaData[field] = val.GetIntegerValue()
-				case *qdrant.Value_StringValue:
-					doc.MetaData[field] = val.GetStringValue()
-				case *qdrant.Value_BoolValue:
-					doc.MetaData[field] = val.GetBoolValue()
-				case *qdrant.Value_StructValue:
-					doc.MetaData[field] = val.GetStructValue().Fields
-				case *qdrant.Value_ListValue:
-					doc.MetaData[field] = val.GetListValue()
-				}
-			}
+			ID:      fmt.Sprintf("%d", result.ID),
+			Content: result.TextToIndex,
+			MetaData: map[string]any{
+				"textToIndex": result.TextToIndex,
+				"title":      result.Title,
+				"created_at": result.CreatedAt,
+				"id":         result.ID,
+				"chunk_index": result.ChunkIndex,
+				"summary":    result.Summary,
+			},
 		}
 		docs = append(docs, doc)
 	}
@@ -80,18 +54,10 @@ func (f *FullTextRetriever) Retrieve(ctx context.Context, query string, opts ...
 	return docs, nil
 }
 
-// newFullTextRetriever 全文检索器 (新增)
-// 注意：这要求你在 Qdrant 的 textToIndex 字段上已经建立了 'text' 类型的索引
-func newFullTextRetriever(ctx context.Context, client *qdrant.Client, colName string) (retriever.Retriever, error) {
+// newFullTextRetriever 全文检索器
+// 使用 PostgreSQL 的 tsvector 和 to_tsquery 进行全文搜索
+func newFullTextRetriever(ctx context.Context, colName string) (retriever.Retriever, error) {
 	return &FullTextRetriever{
 		colName: colName,
-		client:  client,
-		returnFields: []string{"textToIndex",
-			"title",
-			"created_at",
-			"id",
-			"chunk_index",
-			"summary",
-		},
 	}, nil
 }

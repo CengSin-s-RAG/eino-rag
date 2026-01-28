@@ -1,10 +1,5 @@
 package config
 
-type QdrantConfig struct {
-	Host string `yaml:"host"`
-	Port int    `yaml:"port"`
-}
-
 type TemporalConfig struct {
 	HostPort  string `yaml:"hostPort"`
 	Namespace string `yaml:"namespace"`
@@ -24,12 +19,13 @@ type Cdc struct {
 	TableName []string `yaml:"tableName" json:"tableName"`
 }
 
-type MysqlConfig struct {
+type PostgresConfig struct {
 	Host     string `yaml:"host"`
-	Port     int64  `yaml:"port"`
-	User     string `yaml:"userName"`
+	Port     int    `yaml:"port"`
+	User     string `yaml:"user"`
 	Password string `yaml:"password"`
-	DbName   string `yaml:"DB"`
+	DbName   string `yaml:"dbname"`
+	SSLMode  string `yaml:"sslmode"`
 }
 
 type ContextProcessModelConfig struct {
@@ -38,13 +34,12 @@ type ContextProcessModelConfig struct {
 }
 
 type Config struct {
-	Qdrant        *QdrantConfig              `yaml:"qdrant"`
+	Postgres      *PostgresConfig            `yaml:"postgres"`
 	Temporal      *TemporalConfig            `yaml:"temporal"`
 	SyncTemporal  *TemporalConfig            `yaml:"syncTemporal"`
 	McpServer     string                     `yaml:"mcpServer"`
 	Redis         *RedisConfig               `yaml:"redis"`
 	Cdc           []Cdc                      `yaml:"cdc"`
-	IvankaContent *MysqlConfig               `yaml:"ivankaContent"`
 	RagPrompt     string                     `yaml:"ragPromptPath"`
 	Rerank        *ContextProcessModelConfig `yaml:"rerank"`
 	Rewrite       *ContextProcessModelConfig `yaml:"rewrite"`

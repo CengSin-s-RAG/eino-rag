@@ -4,10 +4,9 @@ import (
 	"agent.article.fp/config"
 	"agent.article.fp/util"
 	"fmt"
-	"github.com/qdrant/go-client/qdrant"
 	"github.com/redis/go-redis/v9"
 	"go.temporal.io/sdk/client"
-	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"log"
@@ -15,26 +14,30 @@ import (
 )
 
 var (
-	Qdrant        *qdrant.Client
 	Temporal      client.Client
 	SyncTemporal  client.Client
 	Redis         *redis.Client
 	IvankaContent *gorm.DB
 )
 
-func InitMysql(cfg *config.MysqlConfig) *gorm.DB {
+func InitPostgres(cfg *config.PostgresConfig) *gorm.DB {
 	// 生成gorm链接配置
 	if cfg == nil {
-		panic("mysql config is nil")
+		panic("postgres config is nil")
 	}
 
-	// 构建 DSN 连接字符串
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True",
-		cfg.User,
-		cfg.Password,
+	// 构建 PostgreSQL 连接字符串
+	sslmode := cfg.SSLMode
+	if sslmode == "" {
+		sslmode = "disable"
+	}
+	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		cfg.Host,
 		cfg.Port,
+		cfg.User,
+		cfg.Password,
 		cfg.DbName,
+		sslmode,
 	)
 
 	newLogger := logger.New(
@@ -48,28 +51,18 @@ func InitMysql(cfg *config.MysqlConfig) *gorm.DB {
 		},
 	)
 
-	// 初始化 MySQL 连接
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{Logger: newLogger})
+	// 初始化 PostgreSQL 连接
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: newLogger})
 	if err != nil {
 		panic(err)
 	}
+
+	// 注册 pgvector 扩展
+	if err := db.Exec("CREATE EXTENSION IF NOT EXISTS vector").Error; err != nil {
+		log.Printf("Warning: failed to create vector extension: %v", err)
+	}
+
 	return db
-}
-
-func InitQdrant(cfg *config.QdrantConfig) {
-	if cfg == nil {
-		panic("qdrant config is nil")
-	}
-
-	c, err := qdrant.NewClient(&qdrant.Config{
-		Host: cfg.Host,
-		Port: cfg.Port,
-	})
-	if err != nil {
-		log.Fatalln("qdrant client init failed, err ", err)
-	}
-
-	Qdrant = c
 }
 
 func InitRedis(cfg *config.RedisConfig) {
@@ -89,10 +82,9 @@ func Init() {
 	util.RerankPrompt = util.InitPrompt(config.Cfg.Rerank.Prompt)
 	util.QueryRewritePrompt = util.InitPrompt(config.Cfg.Rewrite.Prompt)
 	InitRedis(config.Cfg.Redis)
-	InitQdrant(config.Cfg.Qdrant)
 	//client.InitTemporal(config.Cfg.Temporal, &client.Temporal)
 	//client.InitTemporal(config.Cfg.SyncTemporal, &client.SyncTemporal)
-	IvankaContent = InitMysql(config.Cfg.IvankaContent)
+	IvankaContent = InitPostgres(config.Cfg.Postgres)
 	InitMcpClient(config.Cfg.McpServer)
 	InitTools()
 }
@@ -100,7 +92,6 @@ func Init() {
 func Close() {
 	//Temporal.Close()
 	//SyncTemporal.Close()
-	Qdrant.Close()
 	McpClient.Close()
 	Redis.Close()
 }

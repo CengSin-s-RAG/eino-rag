@@ -1,7 +1,6 @@
 package component
 
 import (
-	"agent.article.fp/client"
 	"agent.article.fp/dao"
 	"agent.article.fp/model"
 	"agent.article.fp/util"
@@ -43,9 +42,9 @@ func BuildContentRetriever(ctx context.Context, config *MyContentRetrieverConfig
 func retrieverFactory(ctx context.Context, s string, colName string) (retriever.Retriever, error) {
 	switch s {
 	case "vectors":
-		return newVectorRetriever(ctx, client.Qdrant, colName)
+		return newVectorRetriever(ctx, colName)
 	case "full_text":
-		return newFullTextRetriever(ctx, client.Qdrant, colName)
+		return newFullTextRetriever(ctx, colName)
 	default:
 		return nil, fmt.Errorf("[defaultRetriever] invalid retriever type: %s", s)
 	}
