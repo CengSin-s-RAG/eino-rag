@@ -41,11 +41,11 @@ func (p *PgVectorRetriever) Retrieve(ctx context.Context, query string, opts ...
 		Raw(`
 			SELECT 
 				id, text_to_index, title, created_at, chunk_index, summary, embedding, collection,
-				1 - (embedding <=> $1::vector) as similarity
+				1 - (embedding <=> ?::vector) as similarity
 			FROM vector_store
-			WHERE collection = $2
-			ORDER BY embedding <=> $3::vector
-			LIMIT $4
+			WHERE collection = ?
+			ORDER BY embedding <=> ?::vector
+			LIMIT ?
 		`, queryVector.String(), p.colName, queryVector.String(), p.topK).
 		Scan(&results).Error
 
