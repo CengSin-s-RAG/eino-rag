@@ -86,7 +86,7 @@ func main() {
 	rewriteConf := openai.ChatModelConfig{
 		APIKey:      os.Getenv("OPENROUTER_API_KEY"),
 		BaseURL:     os.Getenv("OPENROUTER_API_BASE_URL"),
-		Model:       "xiaomi/mimo-v2-flash:free",
+		Model:       "xiaomi/mimo-v2-flash",
 		Temperature: &[]float32{0.02}[0],
 	}
 	client.QueryRewriteModel, err = openai.NewChatModel(ctx, &rewriteConf)

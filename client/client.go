@@ -2,6 +2,7 @@ package client
 
 import (
 	"agent.article.fp/config"
+	"agent.article.fp/model"
 	"agent.article.fp/util"
 	"fmt"
 	"github.com/redis/go-redis/v9"
@@ -85,6 +86,21 @@ func Init() {
 	//client.InitTemporal(config.Cfg.Temporal, &client.Temporal)
 	//client.InitTemporal(config.Cfg.SyncTemporal, &client.SyncTemporal)
 	IvankaContent = InitPostgres(config.Cfg.Postgres)
+
+	// 确保 vector_store 表及向量/全文索引存在，否则向量检索与全文检索会全表扫描
+	if err := model.CreateTableIfNotExists(IvankaContent); err != nil {
+		log.Printf("[warn] vector_store CreateTableIfNotExists: %v", err)
+	}
+	if err := model.CreateFullTextIndexIfNotExists(IvankaContent); err != nil {
+		log.Printf("[warn] vector_store CreateFullTextIndexIfNotExists: %v", err)
+	}
+	if err := model.CreateGlobalVectorIndexIfNotExists(IvankaContent); err != nil {
+		log.Printf("[warn] vector_store CreateGlobalVectorIndexIfNotExists: %v", err)
+	}
+	if err := model.CreateIndexIfNotExists(IvankaContent, util.CollectionFupengshuo); err != nil {
+		log.Printf("[warn] vector_store CreateIndexIfNotExists(%s): %v", util.CollectionFupengshuo, err)
+	}
+
 	InitMcpClient(config.Cfg.McpServer)
 	InitTools()
 }

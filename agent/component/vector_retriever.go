@@ -13,9 +13,9 @@ import (
 
 // PgVectorRetriever PostgreSQL + pgvector 向量检索器
 type PgVectorRetriever struct {
-	colName      string
-	embedder     func(ctx context.Context, text string) ([]float32, error)
-	topK         int
+	colName        string
+	embedder       func(ctx context.Context, text string) ([]float32, error)
+	topK           int
 	scoreThreshold float64
 }
 
@@ -34,7 +34,7 @@ func (p *PgVectorRetriever) Retrieve(ctx context.Context, query string, opts ...
 
 	// 2. 使用 pgvector 进行相似度搜索
 	queryVector := pgvector.NewVector(embedding)
-	
+
 	// 使用原生 SQL 进行向量相似度搜索（余弦距离转换为相似度）
 	var results []VectorStoreWithSimilarity
 	err = client.IvankaContent.
@@ -48,7 +48,7 @@ func (p *PgVectorRetriever) Retrieve(ctx context.Context, query string, opts ...
 			LIMIT $4
 		`, queryVector.String(), p.colName, queryVector.String(), p.topK).
 		Scan(&results).Error
-	
+
 	if err != nil {
 		return nil, err
 	}
@@ -62,15 +62,15 @@ func (p *PgVectorRetriever) Retrieve(ctx context.Context, query string, opts ...
 		}
 
 		doc := &schema.Document{
-			ID:      fmt.Sprintf("%d", result.ID),
+			ID:      fmt.Sprintf("%d", result.Id),
 			Content: result.TextToIndex,
 			MetaData: map[string]any{
 				"textToIndex": result.TextToIndex,
-				"title":      result.Title,
-				"created_at": result.CreatedAt,
-				"id":         result.ID,
+				"title":       result.Title,
+				"created_at":  result.CreatedAt,
+				"id":          result.Id,
 				"chunk_index": result.ChunkIndex,
-				"summary":    result.Summary,
+				"summary":     result.Summary,
 			},
 		}
 		docs = append(docs, doc)

@@ -13,7 +13,7 @@ postgres:
   port: 5432
   user: "postgres"
   password: "postgres"
-  dbname: "ivanka_content"
+  dbname: "vectors_db"
   sslmode: "disable"
 
 #temporal:
