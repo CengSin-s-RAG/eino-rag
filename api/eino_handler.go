@@ -55,7 +55,7 @@ func (h *EinoChatAgentHandler) HandleRerank(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	// todo 基于BM25算法对文档进行重排序
+	// todo 基于BM25算法对文档进行重排序 qdrant go-sdk目前暂未支持
 
 	// 让大模型对文档进行排序
 	userMsg := fmt.Sprintf("【用户问题】\n %s \n【候选文档列表】", req.Question)
