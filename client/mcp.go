@@ -64,7 +64,7 @@ func InitTools() {
 	ctx := context.Background()
 	tools, err := einoMcp.GetTools(ctx, &einoMcp.Config{Cli: McpClient}) // 只提供了InvokeRun方法，不支持stream调用
 	if err != nil {
-		log.Fatalln(fmt.Sprintf("get tools failed, err ", err.Error()))
+		log.Fatalln(fmt.Errorf("get tools failed: %v", err))
 	}
 
 	for _, t := range tools {

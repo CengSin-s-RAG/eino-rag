@@ -3,6 +3,7 @@ package client
 import (
 	"agent.article.fp/config"
 	"agent.article.fp/util"
+	"context"
 	"fmt"
 	"github.com/qdrant/go-client/qdrant"
 	"github.com/redis/go-redis/v9"
@@ -74,7 +75,7 @@ func InitQdrant(cfg *config.QdrantConfig) {
 
 func InitRedis(cfg *config.RedisConfig) {
 	if cfg == nil {
-		panic("temporal config is nil")
+		panic("redis config is nil")
 	}
 
 	Redis = redis.NewClient(&redis.Options{
@@ -82,9 +83,14 @@ func InitRedis(cfg *config.RedisConfig) {
 		Password: cfg.Password, // no password set
 		DB:       cfg.DB,       // use default DB
 	})
+
+	if err := Redis.Ping(context.Background()).Err(); err != nil {
+		log.Fatalln(fmt.Errorf("redis connection failed: %v", err))
+	}
 }
 
 func Init() {
+	util.SoulPrompt = util.InitPrompt(config.Cfg.SoulPrompt)
 	util.SystemPrompt = util.InitPrompt(config.Cfg.RagPrompt)
 	util.RerankPrompt = util.InitPrompt(config.Cfg.Rerank.Prompt)
 	util.QueryRewritePrompt = util.InitPrompt(config.Cfg.Rewrite.Prompt)

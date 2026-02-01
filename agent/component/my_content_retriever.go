@@ -139,7 +139,23 @@ func (h *hybridRetriever) unique(docs []*schema.Document) ([]int64, []*schema.Do
 	var ids []int64
 	uniqueDocs := make([]*schema.Document, 0, len(docs))
 	for _, doc := range docs {
-		id := doc.MetaData["id"].(int64)
+		rawId, ok := doc.MetaData["id"]
+		if !ok {
+			continue
+		}
+
+		var id int64
+		switch v := rawId.(type) {
+		case int64:
+			id = v
+		case int:
+			id = int64(v)
+		case float64:
+			id = int64(v)
+		default:
+			continue
+		}
+
 		if !seen[id] {
 			seen[id] = true
 			uniqueDocs = append(uniqueDocs, doc)

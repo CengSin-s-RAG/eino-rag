@@ -45,11 +45,12 @@ type Config struct {
 	Redis         *RedisConfig               `yaml:"redis"`
 	Cdc           []Cdc                      `yaml:"cdc"`
 	IvankaContent *MysqlConfig               `yaml:"ivankaContent"`
+	SoulPrompt    string                     `yaml:"soulPromptPath"`
 	RagPrompt     string                     `yaml:"ragPromptPath"`
 	Rerank        *ContextProcessModelConfig `yaml:"rerank"`
 	Rewrite       *ContextProcessModelConfig `yaml:"rewrite"`
 }
 
 var (
-	Cfg *Config
+	Cfg Config
 )

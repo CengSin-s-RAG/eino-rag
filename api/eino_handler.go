@@ -135,6 +135,21 @@ func (h *EinoChatAgentHandler) HandleQuery(c echo.Context) error {
 		}
 	}()
 
+	// Milestone 2: Cognitive Continuity - Reflection
+	go func() {
+		// Wait a bit for storage to finish or just use the current messages
+		fullHistory := append(messages, message)
+
+		// Use a detached context with a timeout for background reflection
+		reflectCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		defer cancel()
+
+		err := component.Reflect(reflectCtx, h.Chat.Model, fullHistory)
+		if err != nil {
+			log.Printf("Reflection error: %v", err)
+		}
+	}()
+
 	return c.JSON(http.StatusOK, &ChatResp{SessionID: input.SessionId, ReplyMessage: message.Content})
 }
 

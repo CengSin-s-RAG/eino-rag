@@ -48,7 +48,9 @@ func main() {
 		}
 	}()
 
-	_ = cleanenv.ReadConfig("./config/config.yaml", &config.Cfg)
+	if err := cleanenv.ReadConfig("./config/config.yaml", &config.Cfg); err != nil {
+		log.Fatalln(fmt.Errorf("read config error: %v", err))
+	}
 
 	client.Init()
 	defer client.Close()

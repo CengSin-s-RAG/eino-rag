@@ -2,7 +2,6 @@ package util
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"os"
 )
@@ -30,21 +29,16 @@ func GetScoreThreshold(n float64) *float64 {
 }
 
 var (
+	SoulPrompt         string
 	SystemPrompt       string
 	RerankPrompt       string
 	QueryRewritePrompt string
 )
 
 func InitPrompt(path string) string {
-	file, err := os.OpenFile(path, os.O_RDONLY, 0666)
+	contextBtys, err := os.ReadFile(path)
 	if err != nil {
-		log.Fatalln("open system prompt file failed, err ", err)
-	}
-	defer file.Close()
-
-	contextBtys, err := io.ReadAll(file)
-	if err != nil {
-		log.Fatalln(fmt.Errorf("read system prompt file failed, err %v", err))
+		log.Fatalln(fmt.Errorf("read prompt file %s failed: %v", path, err))
 	}
 
 	return string(contextBtys)

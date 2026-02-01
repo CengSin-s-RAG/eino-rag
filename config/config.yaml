@@ -1,3 +1,4 @@
+soulPromptPath: "SOUL.md"
 ragPromptPath: "systemPrompt.md"
 
 rerank:
