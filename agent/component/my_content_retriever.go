@@ -118,9 +118,6 @@ func (h *hybridRetriever) Retrieve(ctx context.Context, query string, opts ...re
 	var returnDocs []*schema.Document
 	// 计算每篇文档的得分并过滤
 	for _, resp := range transform {
-		if resp.Score < util.ScoreTs {
-			continue
-		}
 		entries := msgIdMap[resp.Id]
 		returnDocs = append(returnDocs, &schema.Document{
 			MetaData: map[string]any{
@@ -130,6 +127,9 @@ func (h *hybridRetriever) Retrieve(ctx context.Context, query string, opts ...re
 				"summary":    entries.ContentShort,
 			},
 		})
+		if len(returnDocs) > 3 {
+			break
+		}
 	}
 	return returnDocs, nil
 }
