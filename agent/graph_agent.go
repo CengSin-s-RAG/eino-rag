@@ -59,6 +59,14 @@ func newReactLambdaAgent(ctx context.Context, chatModel *openai.ChatModel) (*rea
 		client.EinoTools = append(client.EinoTools, researchLogTool)
 	}
 
+	// Add HITL Correction Tool
+	correctionTool := component.NewCorrectionTool("memory/CORRECTIONS.md")
+	correctionInfo, err := correctionTool.Info(ctx)
+	if err == nil {
+		client.ToolsInfo = append(client.ToolsInfo, correctionInfo)
+		client.EinoTools = append(client.EinoTools, correctionTool)
+	}
+
 	if err = chatModel.BindTools(client.ToolsInfo); err != nil {
 		return nil, err
 	}
@@ -68,13 +76,37 @@ func newReactLambdaAgent(ctx context.Context, chatModel *openai.ChatModel) (*rea
 		ToolsConfig:      compose.ToolsNodeConfig{Tools: client.EinoTools},
 		MaxStep:          6,
 		MessageModifier: func(ctx context.Context, input []*schema.Message) []*schema.Message {
-			// 使用小模型进行摘要
-			if len(input) > 19 && schema.User == input[len(input)-1].Role {
+			// Ensure history is not empty
+			if len(input) == 0 {
+				return input
+			}
+
+			// Force reload system prompt if corrections file changed
+			// (GetSystemPrompt handles the reading logic)
+			sysPrompt := util.GetSystemPrompt()
+
+			// Check if we already have a system message at the start
+			if input[0].Role == schema.System {
+				// Create a copy to avoid mutating original state
+				newInput := make([]*schema.Message, len(input))
+				copy(newInput, input)
+				newInput[0] = schema.SystemMessage(sysPrompt)
+				input = newInput
+			} else {
+				// Create a new slice to avoid modifying the input slice directly
+				newInput := make([]*schema.Message, 0, len(input)+1)
+				newInput = append(newInput, schema.SystemMessage(sysPrompt))
+				newInput = append(newInput, input...)
+				input = newInput
+			}
+
+			// 使用小模型进行摘要 (if history is long)
+			if len(input) > 20 && schema.User == input[len(input)-1].Role {
 				newQuery, err := component.QueryRewriting(input[1:])
 				if err != nil {
 					return input
 				}
-				return []*schema.Message{schema.SystemMessage(util.GetSystemPrompt()), schema.UserMessage(newQuery)}
+				return []*schema.Message{schema.SystemMessage(sysPrompt), schema.UserMessage(newQuery)}
 			}
 			return input
 		},

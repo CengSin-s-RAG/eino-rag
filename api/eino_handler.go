@@ -114,7 +114,7 @@ func (h *EinoChatAgentHandler) HandleQuery(c echo.Context) error {
 	userMessage := schema.UserMessage(input.Query)
 	messages = append(messages, userMessage)
 
-	message, err := h.Chat.Runner.Generate(ctx, append([]*schema.Message{schema.SystemMessage(util.GetSystemPrompt())}, messages...), einoAgent.WithComposeOptions(compose.WithCallbacks(&util.SimpleLogger{})))
+	message, err := h.Chat.Runner.Generate(ctx, messages, einoAgent.WithComposeOptions(compose.WithCallbacks(&util.SimpleLogger{})))
 	if err != nil {
 		return err
 	}
@@ -141,6 +141,7 @@ func (h *EinoChatAgentHandler) HandleQuery(c echo.Context) error {
 		fullHistory := append(messages, message)
 
 		// Use a detached context with a timeout for background reflection
+		// Note: We use the Chat model but with a system prompt that enforces summary output
 		reflectCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 		defer cancel()
 
