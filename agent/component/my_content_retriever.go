@@ -67,10 +67,10 @@ func (h *hybridRetriever) Retrieve(ctx context.Context, query string, opts ...re
 
 	resChan := make(chan result, len(h.retrievers))
 	for i := 0; i < len(h.retrievers); i++ {
-		go func() {
-			docs, err := h.retrievers[i].Retrieve(ctx, query, opts...)
+		go func(idx int) {
+			docs, err := h.retrievers[idx].Retrieve(ctx, query, opts...)
 			resChan <- result{docs, err}
-		}()
+		}(i)
 	}
 
 	// 2. 收集并处理结果
