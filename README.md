@@ -11,6 +11,37 @@
 - **关系数据库**: MySQL (默认) / PostgreSQL (可选，支持 pgvector)
 - **AI 模型**: OpenRouter API (支持多种 LLM)
 
+## docker 开发环境搭建
+
+> 从上到下依次为minIO，Qdrant，
+
+```bash
+docker run -p 9000:9000 -p 9001:9001 \                                                                                    ─╯
+  -e "MINIO_ROOT_USER=admin" \
+  -e "MINIO_ROOT_PASSWORD=password" \
+  quay.io/minio/minio server /data --console-address ":9001"
+  
+docker run -p 6333:6333 -p 6334:6334 \                                                                                    ─╯
+    -v "$(pwd)/qdrant_storage:/qdrant/storage:z" \
+    qdrant/qdrant
+    
+docker run -d \
+  --name mysql-work \
+  -p 3306:3306 \
+  -e MYSQL_ROOT_PASSWORD=rootpassword \
+  -v ./data/mysql:/var/lib/mysql \
+  -v ./conf/mysql/my.cnf:/etc/mysql/conf.d/my.cnf \
+  mysql:5.7 \
+  --default-authentication-plugin=mysql_native_password
+  
+docker run -d \
+  --name redis \
+  -p 6379:6379 \
+  -v ./data/redis:/data \
+  redis:latest \
+  redis-server --appendonly yes
+```
+
 ## 分支说明
 
 | 分支 | 功能说明 |
