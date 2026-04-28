@@ -3,6 +3,8 @@ package agent
 import (
 	"agent.article.fp/agent/component"
 	"agent.article.fp/client"
+	"agent.article.fp/config"
+	"agent.article.fp/skill"
 	"agent.article.fp/util"
 	"context"
 	"github.com/cloudwego/eino-ext/components/model/openai"
@@ -13,18 +15,38 @@ import (
 
 // EinoChatAgent 封装编译好的 Runnable，对外提供服务
 type EinoChatAgent struct {
-	Runner *react.Agent
+	Runner       *react.Agent
+	SkillCatalog string // Skill 目录文本，注入系统提示词
 }
 
-func NewEinoChatAgent(ctx context.Context, config openai.ChatModelConfig) (*EinoChatAgent, error) {
-	reactAgent, err := newReactLambdaAgent(ctx, config)
+func NewEinoChatAgent(ctx context.Context, modelConf openai.ChatModelConfig) (*EinoChatAgent, error) {
+	// 初始化 Skill Manager
+	skillMgr, err := skill.NewManager(config.Cfg.SkillsPath)
 	if err != nil {
 		return nil, err
 	}
-	return &EinoChatAgent{Runner: reactAgent}, nil
+
+	// 如果有可用 Skill，注册 activate_skill 工具
+	var skillCatalog string
+	if skillMgr.HasSkills() {
+		skillTool := client.NewActivateSkillTool(skillMgr)
+		info, err := skillTool.Info(ctx)
+		if err != nil {
+			return nil, err
+		}
+		client.ToolsInfo = append(client.ToolsInfo, info)
+		client.EinoTools = append(client.EinoTools, skillTool)
+		skillCatalog = skillMgr.Catalog()
+	}
+
+	reactAgent, err := newReactLambdaAgent(ctx, modelConf, skillCatalog)
+	if err != nil {
+		return nil, err
+	}
+	return &EinoChatAgent{Runner: reactAgent, SkillCatalog: skillCatalog}, nil
 }
 
-func newReactLambdaAgent(ctx context.Context, config openai.ChatModelConfig) (*react.Agent, error) {
+func newReactLambdaAgent(ctx context.Context, cfg openai.ChatModelConfig, skillCatalog string) (*react.Agent, error) {
 	hybirdRetriever, err := component.BuildContentRetriever(ctx, &component.MyContentRetrieverConfig{
 		ColName:    util.CollectionFupengshuo,
 		Retrievers: []string{"vectors", "full_text"},
@@ -34,7 +56,7 @@ func newReactLambdaAgent(ctx context.Context, config openai.ChatModelConfig) (*r
 	}
 
 	// 1. 定义 Chat Model (复用你的配置)
-	chatModel, err := openai.NewChatModel(ctx, &config)
+	chatModel, err := openai.NewChatModel(ctx, &cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +85,7 @@ func newReactLambdaAgent(ctx context.Context, config openai.ChatModelConfig) (*r
 				if err != nil {
 					return input
 				}
-				return []*schema.Message{schema.SystemMessage(util.GetSystemPrompt()), schema.UserMessage(newQuery)}
+				return []*schema.Message{schema.SystemMessage(util.GetSystemPrompt(skillCatalog)), schema.UserMessage(newQuery)}
 			}
 			return input
 		},

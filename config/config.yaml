@@ -1,4 +1,5 @@
 ragPromptPath: "systemPrompt.md"
+skillsPath: "skills"
 
 rerank:
   prompt: "rerankSystemPrompt.txt"

@@ -46,6 +46,7 @@ type Config struct {
 	Cdc           []Cdc                      `yaml:"cdc"`
 	IvankaContent *MysqlConfig               `yaml:"ivankaContent"`
 	RagPrompt     string                     `yaml:"ragPromptPath"`
+	SkillsPath    string                     `yaml:"skillsPath"`
 	Rerank        *ContextProcessModelConfig `yaml:"rerank"`
 	Rewrite       *ContextProcessModelConfig `yaml:"rewrite"`
 }

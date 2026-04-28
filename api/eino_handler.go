@@ -114,7 +114,7 @@ func (h *EinoChatAgentHandler) HandleQuery(c echo.Context) error {
 	userMessage := schema.UserMessage(input.Query)
 	messages = append(messages, userMessage)
 
-	chatContent := append([]*schema.Message{schema.SystemMessage(util.GetSystemPrompt())}, messages...)
+	chatContent := append([]*schema.Message{schema.SystemMessage(util.GetSystemPrompt(h.Chat.SkillCatalog))}, messages...)
 	message, err := h.Chat.Runner.Generate(ctx, chatContent, einoAgent.WithComposeOptions(compose.WithCallbacks(&util.SimpleLogger{})))
 	if err != nil {
 		return err
