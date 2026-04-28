@@ -26,11 +26,13 @@ func main() {
 	client.Init()
 	defer client.Close()
 
+	temperature := float32(1)
+
 	conf := openai.ChatModelConfig{
 		APIKey:      os.Getenv("API_KEY"),
 		BaseURL:     os.Getenv("BASE_URL"),
 		Model:       os.Getenv("MODEL"),
-		Temperature: &[]float32{0.05}[0],
+		Temperature: &temperature,
 	}
 	chatAgent, err := agent.NewEinoChatAgent(ctx, conf)
 	if err != nil {
@@ -60,7 +62,7 @@ func main() {
 		APIKey:      os.Getenv("API_KEY"),
 		BaseURL:     os.Getenv("BASE_URL"),
 		Model:       os.Getenv("MODEL"),
-		Temperature: &[]float32{0.02}[0],
+		Temperature: &temperature,
 	}
 	client.QueryRewriteModel, err = openai.NewChatModel(ctx, &rewriteConf)
 	if err != nil {
@@ -78,6 +80,7 @@ func main() {
 	v2.POST("/rewrite", einoHandler.HandleRewrite)
 
 	ses := v2.Group("/session")
+	ses.POST("/new", session.NewSession)
 	ses.GET("/list", session.List)
 	ses.GET("/history", session.History)
 

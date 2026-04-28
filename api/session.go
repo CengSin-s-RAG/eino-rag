@@ -4,6 +4,7 @@ import (
 	"agent.article.fp/client"
 	"agent.article.fp/memory"
 	"agent.article.fp/util"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
@@ -23,6 +24,15 @@ type SessionQuery struct {
 type SessionList struct {
 	Sessions   []string `json:"sessions"`
 	NextCursor int64    `json:"next_cursor"`
+}
+
+type NewSessionResp struct {
+	SessionID string `json:"session_id"`
+}
+
+func (s *Session) NewSession(c echo.Context) error {
+	sessionID := uuid.New().String()
+	return c.JSON(http.StatusOK, NewSessionResp{SessionID: sessionID})
 }
 
 func (s *Session) List(c echo.Context) error {
