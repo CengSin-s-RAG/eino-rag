@@ -28,7 +28,7 @@ func main() {
 		log.Fatalln(fmt.Errorf("NewChatModel error: %v", err))
 	}
 
-	// 2. 定义组件：Prompt Template (请求组装)
+	// 2. 定义组件：RagPrompt Template (请求组装)
 	// 它的作用是把 input map 转换成 message 列表
 	template := prompt.FromMessages(schema.FString,
 		schema.SystemMessage(`你是一个资深的 Golang 工程师，只用简短的代码回答问题。`),

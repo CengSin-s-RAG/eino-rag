@@ -1,0 +1,43 @@
+ragPromptPath: "systemPrompt.md"
+
+rerank:
+  prompt: "rerankSystemPrompt.txt"
+  url: "http://localhost:8086/v2/rerank"
+
+rewrite:
+  prompt: "rewriteSystemPrompt.txt"
+  url: "http://localhost:8086/v2/rewrite"
+
+qdrant:
+  host: "localhost"
+  port: 6334
+
+#temporal:
+#  hostPort: "localhost:7233"
+#  namespace: "default"
+#
+#syncTemporal:
+#  hostPort: "localhost:7233"
+#  namespace: "CDC_SYNC_NAMESPACE"
+
+mcpServer: "http://localhost:8085/mcp"
+
+redis:
+  addr: "localhost:6379"
+  password: ""
+  DB: 1
+
+ivankaContent:
+  host: "localhost"
+  port: 3306
+  userName: "root"
+  password: "rootpassword"
+  DB: "ivanka_content"
+
+#cdc:
+#  - addr: "localhost:3306"
+#    user: "root"
+#    password: "rootpassword"
+#    dbName: "ivanka_content"
+#    tableName:
+#      - "article_entries"
