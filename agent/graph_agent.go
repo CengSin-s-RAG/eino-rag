@@ -39,6 +39,17 @@ func NewEinoChatAgent(ctx context.Context, modelConf openai.ChatModelConfig) (*E
 		skillCatalog = skillMgr.Catalog()
 	}
 
+	// 注册 execute_command 工具
+	if config.Cfg.Exec != nil && len(config.Cfg.Exec.AllowedCommands) > 0 {
+		execTool := client.NewExecCommandTool()
+		info, err := execTool.Info(ctx)
+		if err != nil {
+			return nil, err
+		}
+		client.ToolsInfo = append(client.ToolsInfo, info)
+		client.EinoTools = append(client.EinoTools, execTool)
+	}
+
 	reactAgent, err := newReactLambdaAgent(ctx, modelConf, skillCatalog)
 	if err != nil {
 		return nil, err
@@ -77,7 +88,7 @@ func newReactLambdaAgent(ctx context.Context, cfg openai.ChatModelConfig, skillC
 	agentConfig := react.AgentConfig{
 		ToolCallingModel: chatModel,
 		ToolsConfig:      compose.ToolsNodeConfig{Tools: client.EinoTools},
-		MaxStep:          6,
+		MaxStep:          15,
 		MessageModifier: func(ctx context.Context, input []*schema.Message) []*schema.Message {
 			// 使用小模型进行摘要
 			if len(input) > 19 && schema.User == input[len(input)-1].Role {

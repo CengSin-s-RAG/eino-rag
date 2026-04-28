@@ -37,6 +37,11 @@ type ContextProcessModelConfig struct {
 	Url    string `yaml:"url"`
 }
 
+type ExecConfig struct {
+	AllowedCommands []string `yaml:"allowedCommands"` // 白名单命令列表
+	Timeout         int      `yaml:"timeout"`         // 超时时间（秒），默认 60
+}
+
 type Config struct {
 	Qdrant        *QdrantConfig              `yaml:"qdrant"`
 	Temporal      *TemporalConfig            `yaml:"temporal"`
@@ -47,6 +52,7 @@ type Config struct {
 	IvankaContent *MysqlConfig               `yaml:"ivankaContent"`
 	RagPrompt     string                     `yaml:"ragPromptPath"`
 	SkillsPath    string                     `yaml:"skillsPath"`
+	Exec          *ExecConfig                `yaml:"exec"`
 	Rerank        *ContextProcessModelConfig `yaml:"rerank"`
 	Rewrite       *ContextProcessModelConfig `yaml:"rewrite"`
 }
