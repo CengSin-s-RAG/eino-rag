@@ -8,10 +8,7 @@ import (
 	"agent.article.fp/config"
 	"context"
 	"fmt"
-	"github.com/cloudwego/eino-ext/callbacks/apmplus"
 	"github.com/cloudwego/eino-ext/components/model/openai"
-	"github.com/cloudwego/eino-ext/devops"
-	"github.com/cloudwego/eino/callbacks"
 	"github.com/cloudwego/eino/schema"
 	"github.com/eino-contrib/jsonschema"
 	"github.com/ilyakaznacheev/cleanenv"
@@ -24,40 +21,18 @@ import (
 
 func main() {
 	ctx := context.Background()
-	if err := devops.Init(ctx); err != nil {
-		log.Fatalln(fmt.Errorf("init devops error: %v", err))
-	}
-
-	// 创建apmplus handler
-	cbh, shutdown, err := apmplus.NewApmplusHandler(&apmplus.Config{
-		Host:        "apmplus-cn-beijing.volces.com:4317",
-		AppKey:      os.Getenv("AMP_PLUS_API_KEY"),
-		ServiceName: "fp-article-agent",
-		Release:     "release/v0.0.1",
-	})
-	if err != nil {
-		log.Fatalln(fmt.Errorf("init apmplus error: %v", err))
-	}
-
-	// 设置apmplus为全局callback
-	callbacks.AppendGlobalHandlers(cbh)
-
-	defer func() {
-		if err = shutdown(ctx); err != nil {
-			log.Fatalln(fmt.Errorf("shutdown error: %v", err))
-		}
-	}()
-
 	_ = cleanenv.ReadConfig("./config/config.yaml", &config.Cfg)
 
 	client.Init()
 	defer client.Close()
 
+	temperature := float32(1)
+
 	conf := openai.ChatModelConfig{
-		APIKey:      os.Getenv("OPENROUTER_API_KEY"),
-		BaseURL:     os.Getenv("OPENROUTER_API_BASE_URL"),
-		Model:       os.Getenv("OPENROUTER_MODEL"),
-		Temperature: &[]float32{0.05}[0],
+		APIKey:      os.Getenv("API_KEY"),
+		BaseURL:     os.Getenv("BASE_URL"),
+		Model:       os.Getenv("MODEL"),
+		Temperature: &temperature,
 	}
 	chatAgent, err := agent.NewEinoChatAgent(ctx, conf)
 	if err != nil {
@@ -67,9 +42,9 @@ func main() {
 
 	schemaDesc := jsonschema.Reflect(&component.RerankState{})
 	rerankConf := openai.ChatModelConfig{
-		APIKey:  os.Getenv("OPENROUTER_API_KEY"),
-		BaseURL: os.Getenv("OPENROUTER_API_BASE_URL"),
-		Model:   "qwen/qwen-2.5-7b-instruct",
+		APIKey:  os.Getenv("API_KEY"),
+		BaseURL: os.Getenv("BASE_URL"),
+		Model:   os.Getenv("MODEL"),
 		ResponseFormat: &openai.ChatCompletionResponseFormat{
 			Type: openai.ChatCompletionResponseFormatTypeJSONSchema,
 			JSONSchema: &openai.ChatCompletionResponseFormatJSONSchema{
@@ -84,10 +59,10 @@ func main() {
 	}
 
 	rewriteConf := openai.ChatModelConfig{
-		APIKey:      os.Getenv("OPENROUTER_API_KEY"),
-		BaseURL:     os.Getenv("OPENROUTER_API_BASE_URL"),
-		Model:       "xiaomi/mimo-v2-flash:free",
-		Temperature: &[]float32{0.02}[0],
+		APIKey:      os.Getenv("API_KEY"),
+		BaseURL:     os.Getenv("BASE_URL"),
+		Model:       os.Getenv("MODEL"),
+		Temperature: &temperature,
 	}
 	client.QueryRewriteModel, err = openai.NewChatModel(ctx, &rewriteConf)
 	if err != nil {
@@ -105,6 +80,7 @@ func main() {
 	v2.POST("/rewrite", einoHandler.HandleRewrite)
 
 	ses := v2.Group("/session")
+	ses.POST("/new", session.NewSession)
 	ses.GET("/list", session.List)
 	ses.GET("/history", session.History)
 

@@ -1,4 +1,22 @@
 ragPromptPath: "systemPrompt.md"
+skillsPath: "skills"
+
+exec:
+  allowedCommands:
+    - "ls"
+    - "cat"
+    - "grep"
+    - "find"
+    - "curl"
+    - "python3"
+    - "wc"
+    - "head"
+    - "tail"
+    - "sort"
+    - "uniq"
+    - "awk"
+    - "sed"
+  timeout: 60
 
 rerank:
   prompt: "rerankSystemPrompt.txt"

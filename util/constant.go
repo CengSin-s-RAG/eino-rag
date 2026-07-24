@@ -21,7 +21,7 @@ const (
 )
 
 var (
-	ScoreTs        = 0.5
+	ScoreTs        = 0.3
 	ScoreThreshold = GetScoreThreshold(ScoreTs)
 )
 
