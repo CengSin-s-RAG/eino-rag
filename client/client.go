@@ -89,14 +89,18 @@ func Init() {
 	//client.InitTemporal(config.Cfg.Temporal, &client.Temporal)
 	//client.InitTemporal(config.Cfg.SyncTemporal, &client.SyncTemporal)
 	IvankaContent = InitMysql(config.Cfg.IvankaContent)
-	InitMcpClient(config.Cfg.McpServer)
-	InitTools()
+	if len(config.Cfg.MCP) > 0 {
+		InitMcpClient(config.Cfg.MCP[0].Endpoint)
+		InitTools()
+	}
 }
 
 func Close() {
 	//Temporal.Close()
 	//SyncTemporal.Close()
 	Qdrant.Close()
-	McpClient.Close()
+	if McpClient != nil {
+		McpClient.Close()
+	}
 	Redis.Close()
 }

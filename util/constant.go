@@ -33,6 +33,6 @@ var (
 	//go:embed rerankSystemPrompt.txt
 	RerankPrompt string
 
-	//go:embed rerankSystemPrompt.txt
+	//go:embed rewriteSystemPrompt.txt
 	QueryRewritePrompt string
 )

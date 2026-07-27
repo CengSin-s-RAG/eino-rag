@@ -30,7 +30,9 @@ qdrant:
   host: "localhost"
   port: 6334
 
-mcpServer: "http://localhost:8085/mcp"
+mcp:
+  - name: "finance"
+    endpoint: "http://localhost:8085/mcp"
 
 redis:
   addr: "localhost:6379"
@@ -44,5 +46,11 @@ ivankaContent:
   password: "rootpassword"
   DB: "ivanka_content"
 
-provider:
-
+providers:
+  primary:
+    type: "openai-compatible"
+    baseURL: "https://token-plan-cn.xiaomimimo.com/v1"
+    apiKeyEnv: "API_KEY"
+    model: "mimo-v2.5"
+    temperature: 1
+  fallback: []

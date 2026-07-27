@@ -1,129 +1,59 @@
 package main
 
 import (
-	"agent.article.fp/agent"
-	"agent.article.fp/agent/component"
-	"agent.article.fp/api"
-	"agent.article.fp/client"
-	_ "agent.article.fp/config"
-	"agent.article.fp/service"
+	"agent.article.fp/bootstrap"
+	"agent.article.fp/config"
 	"agent.article.fp/transport"
+	"agent.article.fp/web"
 	"context"
-	"fmt"
-	"github.com/cloudwego/eino-ext/components/model/openai"
-	"github.com/cloudwego/eino/schema"
-	"github.com/eino-contrib/jsonschema"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-	"io"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
-	ctx := context.Background()
-
-	chatService, err := service.New()
+	cfg, err := config.Load("./config/config.yaml")
 	if err != nil {
-		log.Fatal("new chatService fail, info: ", err)
+		log.Fatal("load config: ", err)
 	}
-
-	log.Fatal("service start failed, info: ", transport.Start(chatService))
-
-	client.Init()
-	defer client.Close()
-
-	temperature := float32(1)
-
-	conf := openai.ChatModelConfig{
-		APIKey:      os.Getenv("API_KEY"),
-		BaseURL:     os.Getenv("BASE_URL"),
-		Model:       os.Getenv("MODEL"),
-		Temperature: &temperature,
-	}
-	chatAgent, err := agent.NewEinoChatAgent(ctx, conf)
+	app, err := bootstrap.New(context.Background(), cfg)
 	if err != nil {
-		log.Fatalln(fmt.Errorf("NewEinoChatAgent: %v", err))
+		log.Fatal("build application: ", err)
 	}
-	einoHandler := api.NewEinoChatAgentHandler(chatAgent)
+	defer func() {
+		if err := app.Close(); err != nil {
+			log.Printf("close application: %v", err)
+		}
+	}()
 
-	schemaDesc := jsonschema.Reflect(&component.RerankState{})
-	rerankConf := openai.ChatModelConfig{
-		APIKey:  os.Getenv("API_KEY"),
-		BaseURL: os.Getenv("BASE_URL"),
-		Model:   os.Getenv("MODEL"),
-		ResponseFormat: &openai.ChatCompletionResponseFormat{
-			Type: openai.ChatCompletionResponseFormatTypeJSONSchema,
-			JSONSchema: &openai.ChatCompletionResponseFormatJSONSchema{
-				JSONSchema: schemaDesc,
-			},
-		},
-		Temperature: &[]float32{0.01}[0],
-	}
-	client.RerankModel, err = openai.NewChatModel(ctx, &rerankConf)
+	server := transport.New(app.Chat, app.Aux)
+	defer func() {
+		if err := server.Close(); err != nil {
+			log.Printf("close HTTP server: %v", err)
+		}
+	}()
+	frontend, err := web.New(":3000")
 	if err != nil {
-		log.Fatalln(fmt.Errorf("NewChatModel: %v", err))
+		log.Fatal("create frontend server: ", err)
 	}
+	defer func() {
+		if err := frontend.Close(); err != nil {
+			log.Printf("close frontend server: %v", err)
+		}
+	}()
+	errCh := make(chan error, 2)
+	go func() { errCh <- server.Start(":8086") }()
+	go func() { errCh <- frontend.Start() }()
 
-	rewriteConf := openai.ChatModelConfig{
-		APIKey:      os.Getenv("API_KEY"),
-		BaseURL:     os.Getenv("BASE_URL"),
-		Model:       os.Getenv("MODEL"),
-		Temperature: &temperature,
-	}
-	client.QueryRewriteModel, err = openai.NewChatModel(ctx, &rewriteConf)
-	if err != nil {
-		log.Fatalln(fmt.Errorf("NewChatModel: %v", err))
-	}
-
-	session := api.NewChatSession()
-
-	e := echo.New()
-	e.Use(middleware.CORS())
-
-	v2 := e.Group("/v2")
-	v2.POST("/chat", einoHandler.HandleQuery)
-	v2.POST("/rerank", einoHandler.HandleRerank)
-	v2.POST("/rewrite", einoHandler.HandleRewrite)
-
-	ses := v2.Group("/session")
-	ses.POST("/new", session.NewSession)
-	ses.GET("/list", session.List)
-	ses.GET("/history", session.History)
-
-	if err := e.Start(":8086"); err != nil {
-		log.Fatalln(err)
-	}
-}
-
-func sse(handle func(c echo.Context) (*schema.StreamReader[*schema.Message], error)) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		w := c.Response()
-		w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
-		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Connection", "keep-alive")
-		w.Header().Set("X-Accel-Buffering", "no")
-
-		s, err := handle(c)
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	select {
+	case err := <-errCh:
 		if err != nil {
-			return err
+			log.Fatal("start HTTP server: ", err)
 		}
-		defer s.Close()
-
-		for {
-			recv, err := s.Recv()
-			if err != nil && io.EOF == err {
-				break
-			}
-			if recv.Content == "" {
-				continue
-			}
-			_, err = fmt.Fprintf(w, "data: %s\n\n", recv.Content)
-			if err != nil {
-				return err
-			}
-			w.Flush()
-		}
-		return nil
+	case <-signals:
+		return
 	}
 }

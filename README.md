@@ -13,17 +13,12 @@
 
 ## docker 开发环境搭建
 
-> 从上到下依次为minIO，Qdrant，
+> 从上到下依次为minIO，Qdrant，`~/GolandWorkSapce2025/money-transfer-project-template-go`
 
 ```bash
-docker run -p 9000:9000 -p 9001:9001 \                                                                                    ─╯
-  -e "MINIO_ROOT_USER=admin" \
-  -e "MINIO_ROOT_PASSWORD=password" \
-  quay.io/minio/minio server /data --console-address ":9001"
+docker run -p 9000:9000 -p 9001:9001  -e "MINIO_ROOT_USER=admin"  -e "MINIO_ROOT_PASSWORD=password"  quay.io/minio/minio server /data --console-address ":9001"
   
-docker run -p 6333:6333 -p 6334:6334 \                                                                                    ─╯
-    -v "$(pwd)/qdrant_storage:/qdrant/storage:z" \
-    qdrant/qdrant
+docker run -p 6333:6333 -p 6334:6334  -v "$(pwd)/qdrant_storage:/qdrant/storage:z"  qdrant/qdrant
     
 docker run -d \
   --name mysql-work \
