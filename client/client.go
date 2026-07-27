@@ -2,7 +2,6 @@ package client
 
 import (
 	"agent.article.fp/config"
-	"agent.article.fp/util"
 	"fmt"
 	"github.com/qdrant/go-client/qdrant"
 	"github.com/redis/go-redis/v9"
@@ -85,9 +84,6 @@ func InitRedis(cfg *config.RedisConfig) {
 }
 
 func Init() {
-	util.SystemPrompt = util.InitPrompt(config.Cfg.RagPrompt)
-	util.RerankPrompt = util.InitPrompt(config.Cfg.Rerank.Prompt)
-	util.QueryRewritePrompt = util.InitPrompt(config.Cfg.Rewrite.Prompt)
 	InitRedis(config.Cfg.Redis)
 	InitQdrant(config.Cfg.Qdrant)
 	//client.InitTemporal(config.Cfg.Temporal, &client.Temporal)

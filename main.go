@@ -5,13 +5,14 @@ import (
 	"agent.article.fp/agent/component"
 	"agent.article.fp/api"
 	"agent.article.fp/client"
-	"agent.article.fp/config"
+	_ "agent.article.fp/config"
+	"agent.article.fp/service"
+	"agent.article.fp/transport"
 	"context"
 	"fmt"
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/schema"
 	"github.com/eino-contrib/jsonschema"
-	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"io"
@@ -21,7 +22,13 @@ import (
 
 func main() {
 	ctx := context.Background()
-	_ = cleanenv.ReadConfig("./config/config.yaml", &config.Cfg)
+
+	chatService, err := service.New()
+	if err != nil {
+		log.Fatal("new chatService fail, info: ", err)
+	}
+
+	log.Fatal("service start failed, info: ", transport.Start(chatService))
 
 	client.Init()
 	defer client.Close()

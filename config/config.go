@@ -1,5 +1,10 @@
 package config
 
+import (
+	"github.com/ilyakaznacheev/cleanenv"
+	"log"
+)
+
 type QdrantConfig struct {
 	Host string `yaml:"host"`
 	Port int    `yaml:"port"`
@@ -42,6 +47,12 @@ type ExecConfig struct {
 	Timeout         int      `yaml:"timeout"`         // 超时时间（秒），默认 60
 }
 
+type Options struct {
+	BasePath string   `yaml:"basePath"`
+	ApiKey   string   `yaml:"apiKey"`
+	Models   []string `yaml:"models"`
+}
+
 type Config struct {
 	Qdrant        *QdrantConfig              `yaml:"qdrant"`
 	Temporal      *TemporalConfig            `yaml:"temporal"`
@@ -55,8 +66,16 @@ type Config struct {
 	Exec          *ExecConfig                `yaml:"exec"`
 	Rerank        *ContextProcessModelConfig `yaml:"rerank"`
 	Rewrite       *ContextProcessModelConfig `yaml:"rewrite"`
+	Primary       *Options                   `yaml:"primary"`
+	Fallback      []*Options                 `yaml:"Fallback"`
 }
 
 var (
 	Cfg *Config
 )
+
+func init() {
+	if err := cleanenv.ReadConfig("./config/config.yaml", &Cfg); err != nil {
+		log.Fatal("init config failed, info: ", err)
+	}
+}

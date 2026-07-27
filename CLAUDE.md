@@ -122,7 +122,7 @@ Agent 有三个工具来源，全部注册到全局切片 `client.ToolsInfo`（s
 
 ## 系统提示词
 
-文件 `systemPrompt.md`，通过 `util.GetSystemPrompt(skillCatalog)` 加载。当 Skill 可用时，追加 `<available_skills>` 目录。在 `MessageModifier` 中，对话超过 19 条时会触发查询改写并重新注入系统提示词。
+文件 `util/systemPrompt.md`，通过 `util.GetSystemPrompt(skillCatalog)` 加载。当 Skill 可用时，追加 `<available_skills>` 目录。在 `MessageModifier` 中，对话超过 19 条时会触发查询改写并重新注入系统提示词。
 
 ## 配置
 
