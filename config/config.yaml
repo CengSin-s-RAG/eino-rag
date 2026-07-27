@@ -1,5 +1,10 @@
-ragPromptPath: "systemPrompt.md"
 skillsPath: "skills"
+
+agent:
+  # 单个聊天请求允许模型发起的最大工具调用轮次；未配置时默认为 15。
+  maxSteps: 15
+  # 每轮带入模型的最近历史消息数量；未配置时默认为 20。
+  historyLimit: 20
 
 exec:
   allowedCommands:
@@ -18,44 +23,20 @@ exec:
     - "sed"
   timeout: 60
 
-rerank:
-  prompt: "rerankSystemPrompt.txt"
-  url: "http://localhost:8086/v2/rerank"
-
-rewrite:
-  prompt: "rewriteSystemPrompt.txt"
-  url: "http://localhost:8086/v2/rewrite"
-
-qdrant:
-  host: "localhost"
-  port: 6334
-
-#temporal:
-#  hostPort: "localhost:7233"
-#  namespace: "default"
-#
-#syncTemporal:
-#  hostPort: "localhost:7233"
-#  namespace: "CDC_SYNC_NAMESPACE"
-
-mcpServer: "http://localhost:8085/mcp"
+mcp:
+  - name: "finance"
+    endpoint: "http://localhost:8085/mcp"
 
 redis:
   addr: "localhost:6379"
   password: ""
   DB: 1
 
-ivankaContent:
-  host: "localhost"
-  port: 3306
-  userName: "root"
-  password: "rootpassword"
-  DB: "ivanka_content"
-
-#cdc:
-#  - addr: "localhost:3306"
-#    user: "root"
-#    password: "rootpassword"
-#    dbName: "ivanka_content"
-#    tableName:
-#      - "article_entries"
+providers:
+  primary:
+    type: "openai-compatible"
+    baseURL: "https://token-plan-cn.xiaomimimo.com/v1"
+    apiKeyEnv: "API_KEY"
+    model: "mimo-v2.5"
+    temperature: 1
+  fallback: []
