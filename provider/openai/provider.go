@@ -30,14 +30,18 @@ func New(cfg config.ProviderConfig) (*Provider, error) {
 		return nil, fmt.Errorf("provider baseURL and model are required")
 	}
 	apiKey := os.Getenv(cfg.APIKeyEnv)
-	if cfg.APIKeyEnv == "" && apiKey == "" {
+	if cfg.APIKeyEnv == "" || apiKey == "" {
 		return nil, fmt.Errorf("provider API key environment variable %q is empty", cfg.APIKeyEnv)
 	}
 	return &Provider{baseURL: strings.TrimRight(cfg.BaseURL, "/"), apiKey: apiKey, model: cfg.Model, temperature: cfg.Temperature, client: http.DefaultClient}, nil
 }
 
 func (p *Provider) Complete(ctx context.Context, request runtime.CompletionRequest) (runtime.Completion, error) {
-	body, err := json.Marshal(chatRequest{Model: p.model, Messages: request.Messages, Tools: request.Tools, Temperature: p.temperature})
+	payload := chatRequest{Model: p.model, Messages: encodeMessages(request.Messages), Tools: encodeTools(request.Tools), Temperature: p.temperature}
+	if len(payload.Tools) > 0 {
+		payload.ToolChoice = "auto"
+	}
+	body, err := json.Marshal(payload)
 	if err != nil {
 		return runtime.Completion{}, err
 	}
@@ -68,20 +72,86 @@ func (p *Provider) Complete(ctx context.Context, request runtime.CompletionReque
 	if len(decoded.Choices) == 0 {
 		return runtime.Completion{}, fmt.Errorf("chat completion returned no choices")
 	}
-	return runtime.Completion{Message: decoded.Choices[0].Message}, nil
+	return runtime.Completion{Message: decodeMessage(decoded.Choices[0].Message)}, nil
 }
 
 func (p *Provider) Close() error { return nil }
 
 type chatRequest struct {
-	Model       string                   `json:"model"`
-	Messages    []runtime.Message        `json:"messages"`
-	Tools       []runtime.ToolDefinition `json:"tools,omitempty"`
-	Temperature float64                  `json:"temperature"`
+	Model       string        `json:"model"`
+	Messages    []wireMessage `json:"messages"`
+	Tools       []wireTool    `json:"tools,omitempty"`
+	ToolChoice  string        `json:"tool_choice,omitempty"`
+	Temperature float64       `json:"temperature"`
 }
 
 type chatResponse struct {
 	Choices []struct {
-		Message runtime.Message `json:"message"`
+		Message wireMessage `json:"message"`
 	} `json:"choices"`
+}
+
+// These wire structures intentionally mirror ChatCompletionNewParams from
+// openai-go. In particular, function tools and tool calls are nested under a
+// "function" object; runtime types stay provider-neutral.
+type wireMessage struct {
+	Role       runtime.Role   `json:"role"`
+	Content    *string        `json:"content"`
+	ToolCalls  []wireToolCall `json:"tool_calls,omitempty"`
+	ToolCallID string         `json:"tool_call_id,omitempty"`
+}
+
+type wireTool struct {
+	Type     string       `json:"type"`
+	Function wireFunction `json:"function"`
+}
+
+type wireFunction struct {
+	Name        string         `json:"name"`
+	Description string         `json:"description,omitempty"`
+	Parameters  map[string]any `json:"parameters,omitempty"`
+	Arguments   string         `json:"arguments,omitempty"`
+}
+
+type wireToolCall struct {
+	ID       string       `json:"id"`
+	Type     string       `json:"type"`
+	Function wireFunction `json:"function"`
+}
+
+func encodeMessages(messages []runtime.Message) []wireMessage {
+	encoded := make([]wireMessage, 0, len(messages))
+	for _, message := range messages {
+		item := wireMessage{Role: message.Role, ToolCallID: message.ToolCallID}
+		// OpenAI-compatible APIs expect content=null for an assistant tool-call
+		// message. Text messages keep their content exactly as supplied.
+		if message.Content != "" || len(message.ToolCalls) == 0 {
+			content := message.Content
+			item.Content = &content
+		}
+		for _, call := range message.ToolCalls {
+			item.ToolCalls = append(item.ToolCalls, wireToolCall{ID: call.ID, Type: "function", Function: wireFunction{Name: call.Name, Arguments: call.Arguments}})
+		}
+		encoded = append(encoded, item)
+	}
+	return encoded
+}
+
+func encodeTools(tools []runtime.ToolDefinition) []wireTool {
+	encoded := make([]wireTool, 0, len(tools))
+	for _, tool := range tools {
+		encoded = append(encoded, wireTool{Type: "function", Function: wireFunction{Name: tool.Name, Description: tool.Description, Parameters: tool.Parameters}})
+	}
+	return encoded
+}
+
+func decodeMessage(message wireMessage) runtime.Message {
+	decoded := runtime.Message{Role: message.Role, ToolCallID: message.ToolCallID}
+	if message.Content != nil {
+		decoded.Content = *message.Content
+	}
+	for _, call := range message.ToolCalls {
+		decoded.ToolCalls = append(decoded.ToolCalls, runtime.ToolCall{ID: call.ID, Name: call.Function.Name, Arguments: call.Function.Arguments})
+	}
+	return decoded
 }

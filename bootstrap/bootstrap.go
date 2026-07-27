@@ -70,7 +70,15 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	}
 	closers = append(closers, registry)
 
-	chat := service.NewChatService(primary, fallback, registry, chatStore, util.GetSystemPrompt(skillManager.Catalog()), 20, 15)
+	chat := service.NewChatService(
+		primary,
+		fallback,
+		registry,
+		chatStore,
+		util.GetSystemPrompt(skillManager.Catalog()),
+		cfg.Agent.HistoryLimit,
+		cfg.Agent.MaxSteps,
+	)
 	return &App{Runtime: runtime.NewApp(closers...), Chat: chat, Aux: service.NewAuxiliaryService(primary, chatStore)}, nil
 }
 
